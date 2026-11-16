@@ -14,7 +14,7 @@
   ·
   <a href="https://etbridge.nimd.me">Web app</a>
   ·
-  <a href="https://github.com/nimdme/et-bridge">Web app source</a>
+  <a href="https://github.com/ET-Bridge/webapp">Web app source</a>
 </p>
 
 <p align="center">

@@ -5,6 +5,14 @@ import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.fromHtml
+import me.nimd.etbridge.core.designsystem.AttendanceBar
+import me.nimd.etbridge.core.designsystem.SectionHeader
+import me.nimd.etbridge.core.model.formatPercent
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -131,14 +139,22 @@ fun AcademicsScreen(vm: StudentViewModel = hiltViewModel(), avm: AssignmentViewM
     val snackbar = LocalSnackbar.current
     var openAssignment by rememberSaveable { mutableStateOf<String?>(null) }
     var assignmentFilter by rememberSaveable { mutableStateOf(0) }
+    var examFilter by rememberSaveable { mutableStateOf(0) }
 
     LaunchedEffect(message) {
         message?.let { snackbar.showSnackbar(it); avm.consumeMessage() }
     }
 
+    // Class averages per exam come from /academicanalysis (keyed by exam id).
+    val classAverages = remember(snap.analysis) {
+        snap.analysis?.semesters.orEmpty().flatMap { it.subjects }.flatMap { it.evaluations }
+            .filter { it.examId != null && it.classAvg > 0 }
+            .associate { it.examId!! to it.classAvg }
+    }
+
     TabbedScreen("Academics", TABS) { tab ->
         when (tab) {
-            0 -> exams(snap)
+            0 -> exams(snap, examFilter, { examFilter = it }, classAverages)
             1 -> assignments(snap, assignmentFilter, { assignmentFilter = it }) { openAssignment = it.id }
             2 -> materials(snap)
             3 -> results(snap)
@@ -146,36 +162,96 @@ fun AcademicsScreen(vm: StudentViewModel = hiltViewModel(), avm: AssignmentViewM
         }
     }
 
-    val selected = snap.evaluations?.assignments?.firstOrNull { it.id == openAssignment }
+    val all = snap.evaluations?.let { it.assignments + it.otherWork.map { (_, a) -> a } }.orEmpty()
+    val selected = all.firstOrNull { it.id == openAssignment }
     if (selected != null) {
         AssignmentSheet(selected, avm) { openAssignment = null }
     }
 }
 
-private fun LazyListScope.exams(snap: StudentSnapshot) {
-    val exams = snap.evaluations?.seriesExams.orEmpty()
-    if (exams.isEmpty()) {
-        item { EmptyState(Icons.Rounded.Quiz, "No exam marks yet", message = "Series and internal exam marks appear here once ETLab publishes them.") }
+private val EXAM_FILTERS = listOf("All", "Series 1", "Series 2", "Model / retest")
+
+private fun SeriesExam.matchesFilter(f: Int): Boolean {
+    val t = title.lowercase()
+    return when (f) {
+        1 -> t.contains("1") || t.contains("first")
+        2 -> t.contains("2") || t.contains("second")
+        3 -> t.contains("model") || t.contains("retest")
+        else -> true
+    }
+}
+
+private fun LazyListScope.exams(snap: StudentSnapshot, filter: Int, onFilter: (Int) -> Unit, averages: Map<String, Double>) {
+    val all = snap.evaluations?.let { it.seriesExams + it.moduleTests }.orEmpty()
+    if (all.isEmpty()) {
+        item { EmptyState(Icons.Rounded.Quiz, "No exams yet", message = "Series exams and their marks appear here once ETLab schedules or publishes them.") }
         return
     }
-    val grouped = exams.groupBy { it.title.ifBlank { it.examType ?: "Exams" } }
-    grouped.forEach { (title, list) ->
-        item("exh-$title") { Text(title, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 4.dp)) }
-        list.forEach { e -> item("ex-${e.id}-${e.subjectCode}") { ExamCard(e) } }
+    item("ef") {
+        LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            items(EXAM_FILTERS.size) { i ->
+                FilterChip(selected = filter == i, onClick = { onFilter(i) }, label = { Text(EXAM_FILTERS[i]) })
+            }
+        }
+    }
+    val exams = all.filter { it.matchesFilter(filter) }
+    val upcoming = exams.filter { !it.isPublished }.sortedWith(compareBy({ it.date }, { it.period }))
+    val published = exams.filter { it.isPublished }.sortedByDescending { it.date }
+    if (upcoming.isNotEmpty()) {
+        item("up-h") { SectionHeader("Upcoming", subtitle = "${upcoming.size} scheduled") }
+        upcoming.forEach { e -> item("up-${e.id}") { UpcomingExamCard(e, Modifier.animateItem()) } }
+    }
+    if (published.isNotEmpty()) {
+        item("pub-h") {
+            val pcts = published.mapNotNull { e -> e.mark.toDoubleOrNull()?.takeIf { e.maximumMark > 0 }?.let { it / e.maximumMark * 100 } }
+            SectionHeader("Published marks", subtitle = if (pcts.isNotEmpty()) "Average ${pcts.average().formatPercent()}% across ${pcts.size} papers" else null)
+        }
+        published.forEach { e -> item("ex-${e.id}") { ExamCard(e, averages[e.id], Modifier.animateItem()) } }
+    }
+    if (exams.isEmpty()) item("none") { EmptyState(Icons.Rounded.Quiz, "No exams match this filter") }
+}
+
+@Composable
+private fun UpcomingExamCard(e: SeriesExam, modifier: Modifier = Modifier) {
+    val left = daysRemaining(e.date)
+    EtCard(modifier) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Column(Modifier.weight(1f)) {
+                Text("${e.subjectCode} · ${e.title}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text(e.subjectName ?: e.subject, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                Text(
+                    listOfNotNull(
+                        formatIndianDate(e.date, DateStyle.DayShort),
+                        e.period?.takeIf { it.isNotBlank() }?.let { p -> if (p.contains(',')) "Hours $p" else "Hour $p" },
+                        "${e.maximumMark.formatCompact()} marks".takeIf { e.maximumMark > 0 },
+                    ).joinToString(" · "),
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+            Pill(
+                when {
+                    left.isOverdue -> e.status.ifBlank { "Awaiting marks" }
+                    left.text == "Due today" -> "Today"
+                    left.text == "1 day left" -> "Tomorrow"
+                    else -> left.text.replace("left", "away").ifBlank { e.status }
+                },
+                tone = if (left.isUrgent && !left.isOverdue) Tone.Warning else Tone.Neutral,
+            )
+        }
     }
 }
 
 @Composable
-private fun ExamCard(e: SeriesExam) {
+private fun ExamCard(e: SeriesExam, classAvg: Double?, modifier: Modifier = Modifier) {
     val mark = parseLenientDouble(e.mark, Double.NaN)
     val pct = if (!mark.isNaN() && e.maximumMark > 0) mark / e.maximumMark * 100 else null
-    EtCard {
+    EtCard(modifier) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Column(Modifier.weight(1f)) {
-                Text(e.subjectCode, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
+                Text("${e.subjectCode} · ${e.title}", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
                 Text(e.subjectName ?: e.subject, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                 Text(
-                    listOfNotNull(formatIndianDate(e.date, DateStyle.Short).takeIf { e.date.isNotBlank() }, e.status.takeIf { it.isNotBlank() }).joinToString(" · "),
+                    listOfNotNull(formatIndianDate(e.date, DateStyle.Short).takeIf { e.date.isNotBlank() }, e.examType?.lowercase()?.replaceFirstChar { it.uppercase() }).joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
             }
@@ -188,52 +264,93 @@ private fun ExamCard(e: SeriesExam) {
                 Text("/ ${e.maximumMark.formatCompact()}", style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }
         }
+        if (pct != null) {
+            Spacer(Modifier.height(10.dp))
+            AttendanceBar(pct, target = classAvg?.let { it / e.maximumMark * 100 } ?: 50.0)
+            Text(
+                buildString {
+                    append("${pct.formatPercent()}%")
+                    if (classAvg != null) {
+                        val diff = mark - classAvg
+                        append(" · class average ${classAvg.formatCompact()} (")
+                        append(if (diff >= 0) "+${diff.formatCompact()}" else diff.formatCompact())
+                        append(")")
+                    }
+                },
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = 4.dp),
+            )
+        }
     }
 }
 
-private val ASSIGNMENT_FILTERS = listOf("Open", "Submitted", "Marked", "All")
+private val ASSIGNMENT_FILTERS = listOf("Open", "Submitted", "Marked", "All", "Other work")
 
 private fun Assignment.bucket(): Int = when {
-    !mark.isNullOrBlank() -> 2
-    status.contains("submit", true) -> 1
+    isMarked -> 2
+    isSubmitted -> 1
     else -> 0
 }
 
 private fun LazyListScope.assignments(snap: StudentSnapshot, filter: Int, onFilter: (Int) -> Unit, onOpen: (Assignment) -> Unit) {
     val all = snap.evaluations?.assignments.orEmpty()
+    val other = snap.evaluations?.otherWork.orEmpty()
     item("af") {
         LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
             items(ASSIGNMENT_FILTERS.size) { i ->
-                val count = if (i == 3) all.size else all.count { it.bucket() == i }
+                val count = when (i) { 3 -> all.size; 4 -> other.size; else -> all.count { it.bucket() == i } }
+                if (i == 4 && count == 0) return@items
                 FilterChip(selected = filter == i, onClick = { onFilter(i) }, label = { Text("${ASSIGNMENT_FILTERS[i]} ($count)") })
             }
         }
     }
-    val list = (if (filter == 3) all else all.filter { it.bucket() == filter }).sortedBy { it.lastDate }
+    val list: List<Pair<String?, Assignment>> = when (filter) {
+        3 -> all.map { null to it }
+        4 -> other.map { (k, a) -> k to a }
+        else -> all.filter { it.bucket() == filter }.map { null to it }
+    }.sortedWith(compareBy<Pair<String?, Assignment>> { if (filter == 0) it.second.lastDate else "" }.thenByDescending { it.second.lastDate })
     if (list.isEmpty()) {
-        item { EmptyState(Icons.AutoMirrored.Rounded.Assignment, "No assignments here") }
+        item {
+            EmptyState(
+                Icons.AutoMirrored.Rounded.Assignment,
+                if (filter == 0) "Nothing open" else "No assignments here",
+                message = if (filter == 0) "You're all caught up." else null,
+            )
+        }
         return
     }
-    list.forEach { a ->
-        item("as-${a.id}") {
+    list.forEach { (kind, a) ->
+        item("as-${kind}-${a.id}") {
             val left = daysRemaining(a.lastDate)
             EtCard(Modifier.animateItem(), onClick = { onOpen(a) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(a.subjectCode, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-                    when (a.bucket()) {
-                        2 -> Pill("Marked ${a.mark}${a.maxMark?.let { "/$it" } ?: ""}", tone = Tone.Safe)
-                        1 -> Pill("Submitted", tone = Tone.Brand)
-                        else -> if (left.text.isNotBlank()) Pill(left.text, tone = if (left.isUrgent) Tone.Danger else Tone.Neutral)
+                    Text(
+                        listOfNotNull(a.subjectCode, kind).joinToString(" · "),
+                        style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f),
+                    )
+                    when {
+                        a.isMarked -> Pill("${a.mark}${a.maxMarkOrNull?.let { " / $it" } ?: ""}", tone = Tone.Safe)
+                        a.isSubmitted -> Pill("Submitted", tone = Tone.Brand)
+                        left.isOverdue -> Pill(a.status.lowercase().replaceFirstChar { it.uppercase() }.ifBlank { "Overdue" }, tone = Tone.Danger)
+                        left.text.isNotBlank() -> Pill(left.text, tone = if (left.isUrgent) Tone.Warning else Tone.Neutral)
                     }
                 }
                 Text(a.title, style = MaterialTheme.typography.titleSmall, modifier = Modifier.padding(top = 4.dp))
                 Text(
                     listOfNotNull(a.subjectName ?: a.subject, "Due ${formatIndianDate(a.lastDate, DateStyle.Short)}").joinToString(" · "),
                     style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1, overflow = TextOverflow.Ellipsis,
                 )
             }
         }
     }
+}
+
+/** ETLab sends assignment details as HTML; render it with links and basic formatting. */
+@Composable
+private fun HtmlText(html: String, modifier: Modifier = Modifier) {
+    val text = remember(html) { AnnotatedString.fromHtml(html.trim()) }
+    Text(text, modifier, style = MaterialTheme.typography.bodyMedium)
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -247,21 +364,34 @@ private fun AssignmentSheet(a: Assignment, avm: AssignmentViewModel, onDismiss: 
     val working = busy == a.id
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.padding(horizontal = 20.dp).navigationBarsPadding().padding(bottom = 16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        Column(
+            Modifier.verticalScroll(rememberScrollState()).padding(horizontal = 20.dp).navigationBarsPadding().padding(bottom = 16.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp),
+        ) {
             Text(a.subjectCode, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.primary)
             Text(a.title, style = MaterialTheme.typography.headlineSmall)
             Text(a.subjectName ?: a.subject, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                 a.issueDate?.let { Pill("Issued ${formatIndianDate(it, DateStyle.Short)}") }
-                Pill("Due ${formatIndianDate(a.lastDate, DateStyle.Short)}", tone = if (daysRemaining(a.lastDate).isUrgent) Tone.Danger else Tone.Neutral)
-                a.maxMark?.let { Pill("Max $it") }
+                Pill("Due ${formatIndianDate(a.lastDate, DateStyle.Short)}", tone = if (a.isOpen && daysRemaining(a.lastDate).isUrgent) Tone.Danger else Tone.Neutral)
+                when {
+                    a.isMarked -> Pill("Marks ${a.mark}${a.maxMarkOrNull?.let { " / $it" } ?: ""}", tone = Tone.Safe)
+                    a.isSubmitted -> Pill("Submitted", tone = Tone.Brand)
+                    else -> Pill(a.status.lowercase().replaceFirstChar { it.uppercase() }, tone = Tone.Warning)
+                }
+                if (!a.isMarked) a.maxMarkOrNull?.let { Pill("Max $it") }
             }
-            a.submissionMode?.let { Text("Submission: $it", style = MaterialTheme.typography.bodySmall) }
-            if (!a.details.isNullOrBlank()) Text(a.details!!, style = MaterialTheme.typography.bodyMedium)
+            a.submissionMode?.let { Text("Submission: $it", style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+            if (!a.details.isNullOrBlank()) HtmlText(a.details!!)
             HorizontalDivider()
-            if (!a.url.isNullOrBlank()) {
-                OutlinedButton(onClick = { app.download(a.url!!, "${a.subjectCode}-${a.title}.pdf") }, modifier = Modifier.fillMaxWidth()) {
-                    Icon(Icons.Rounded.Download, null); Spacer(Modifier.width(8.dp)); Text("Download question paper")
+            if (!a.url.isNullOrBlank() && a.canDownload) {
+                val downloading = a.url in app.downloadingUrls
+                OutlinedButton(
+                    onClick = { app.download(a.url!!, "${a.subjectCode}_${a.title.replace(Regex("[^A-Za-z0-9_-]"), "_")}.pdf") },
+                    enabled = !downloading, modifier = Modifier.fillMaxWidth(),
+                ) {
+                    if (downloading) CircularProgressIndicator(Modifier.size(18.dp), strokeWidth = 2.dp) else Icon(Icons.Rounded.Download, null)
+                    Spacer(Modifier.width(8.dp)); Text("Download attachment")
                 }
             }
             if (a.upload && a.canSubmit) {
@@ -276,6 +406,11 @@ private fun AssignmentSheet(a: Assignment, avm: AssignmentViewModel, onDismiss: 
                 Button(onClick = { picked?.let { avm.upload(a.id, it) } }, enabled = picked != null && !working, modifier = Modifier.fillMaxWidth()) {
                     if (working) CircularProgressIndicator(Modifier.size(20.dp), strokeWidth = 2.dp) else Text("Submit")
                 }
+            } else if (a.isOpen && a.submissionMode?.contains("manual", true) == true) {
+                Text(
+                    "This assignment is submitted in person, not through ETLab.",
+                    style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             if (a.canDeleteSubmission) {
                 TextButton(onClick = { confirmDelete = true }, enabled = !working) {

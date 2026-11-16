@@ -223,7 +223,7 @@ private fun PendingDlCard(snap: StudentSnapshot, onOpen: () -> Unit) {
                 style = MaterialTheme.typography.titleSmall, color = s.onPendingContainer,
             )
             Text(
-                if (pending.isNotEmpty()) "Counted in projections until ETLab records them"
+                if (pending.isNotEmpty()) "Saved on this phone only · counted in projections until ETLab records them"
                 else "$reconciled entr${if (reconciled == 1) "y is" else "ies are"} now official",
                 style = MaterialTheme.typography.bodySmall, color = s.onPendingContainer.copy(alpha = 0.8f),
             )

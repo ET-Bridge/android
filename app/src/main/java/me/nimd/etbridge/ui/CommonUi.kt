@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -21,6 +22,7 @@ import androidx.compose.material.icons.rounded.Close
 import androidx.compose.material.icons.rounded.Event
 import androidx.compose.material.icons.rounded.HourglassTop
 import androidx.compose.material.icons.rounded.PauseCircle
+import androidx.compose.material.icons.rounded.PhoneAndroid
 import androidx.compose.material.icons.rounded.SwapHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
@@ -230,13 +232,14 @@ fun HourChip(period: TimetablePeriod, active: Boolean, modifier: Modifier = Modi
     val fg = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
     Column(
         modifier
-            .width(76.dp)
+            .widthIn(min = 76.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(bg)
             .padding(horizontal = 10.dp, vertical = 8.dp),
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text("H${period.hour}", style = MaterialTheme.typography.labelSmall, color = fg.copy(alpha = 0.8f), modifier = Modifier.weight(1f))
+        Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            Text("H${period.hour}", style = MaterialTheme.typography.labelSmall, color = fg.copy(alpha = 0.8f), maxLines = 1)
+            Spacer(Modifier.weight(1f))
             if (showStatus && period.attendanceStatus != null && st != PeriodStatus.Other) {
                 Box(Modifier.size(7.dp).clip(CircleShape).background(statusColor(st)))
             }
@@ -245,5 +248,35 @@ fun HourChip(period: TimetablePeriod, active: Boolean, modifier: Modifier = Modi
             period.subjectCode.ifBlank { period.subject.take(8) }, color = fg, fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.labelLarge, maxLines = 1, overflow = TextOverflow.Ellipsis,
         )
+    }
+}
+
+/**
+ * Makes it unmistakable that self-reported duty leaves never leave the phone: ETLab only
+ * changes once faculty enter the leave officially.
+ */
+@Composable
+fun LocalOnlyNotice(modifier: Modifier = Modifier, compact: Boolean = false) {
+    val s = EtTheme.status
+    Row(
+        modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.medium)
+            .background(s.pendingContainer)
+            .padding(horizontal = 14.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.Top,
+    ) {
+        Icon(androidx.compose.material.icons.Icons.Rounded.PhoneAndroid, null, tint = s.onPendingContainer, modifier = Modifier.size(20.dp))
+        Spacer(Modifier.width(12.dp))
+        Column {
+            Text("Saved only on this phone", style = MaterialTheme.typography.titleSmall, color = s.onPendingContainer)
+            Text(
+                if (compact) "Not sent to ETLab or your college. Used only for projected attendance."
+                else "Logged duty leaves are never sent to ETLab or your college. They only adjust the projected " +
+                    "numbers you see here. Submit your duty leave to your faculty as usual; once it's recorded in " +
+                    "ETLab, ETBridge marks it as official automatically. Signing out deletes them.",
+                style = MaterialTheme.typography.bodySmall, color = s.onPendingContainer.copy(alpha = 0.85f),
+            )
+        }
     }
 }

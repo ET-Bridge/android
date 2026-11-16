@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -116,7 +117,7 @@ fun CoursesScreen(vm: StudentViewModel = hiltViewModel()) {
                         if (c.attenPer > 0) AttendanceRing(c.attenPer, size = 48.dp, strokeWidth = 5.dp, labelStyle = MaterialTheme.typography.labelMedium)
                     }
                     Spacer(Modifier.height(10.dp))
-                    Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                    FlowRow(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
                         if (c.type.isNotBlank()) Pill(c.type, tone = Tone.Brand)
                         c.slot?.takeIf { it.isNotBlank() }?.let { Pill("Slot $it") }
                         if (c.credits > 0) Pill("${c.credits.formatCompact()} credits")
@@ -236,10 +237,11 @@ private fun LazyListScope.syllabus(d: CourseDetails) {
             )
         }
     }
-    d.syllabus.groupBy { it.module }.toSortedMap().forEach { (module, topics) ->
+    // Module 0 holds ETLab's "Extra Topic" placeholders; list real modules first.
+    d.syllabus.groupBy { it.module }.toSortedMap(compareBy { if (it == 0) Int.MAX_VALUE else it }).forEach { (module, topics) ->
         item("m-$module") {
             EtCard {
-                Text(if (module > 0) "Module $module" else "Topics", style = MaterialTheme.typography.titleMedium)
+                Text(if (module > 0) "Module $module" else "Extra topics", style = MaterialTheme.typography.titleMedium)
                 Spacer(Modifier.height(6.dp))
                 topics.forEach { t ->
                     Row(Modifier.padding(vertical = 4.dp), verticalAlignment = Alignment.Top) {

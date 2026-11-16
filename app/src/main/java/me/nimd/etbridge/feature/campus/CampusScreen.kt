@@ -41,6 +41,7 @@ import me.nimd.etbridge.core.model.formatIndianDate
 import me.nimd.etbridge.core.model.formatRupees
 import me.nimd.etbridge.navigation.DutyLeavesRoute
 import me.nimd.etbridge.ui.LocalAppActions
+import me.nimd.etbridge.ui.LocalOnlyNotice
 import me.nimd.etbridge.ui.StudentSnapshot
 import me.nimd.etbridge.ui.StudentViewModel
 import me.nimd.etbridge.ui.TabbedScreen
@@ -164,6 +165,7 @@ private fun FeeStat(label: String, value: String, modifier: Modifier) {
 }
 
 private fun LazyListScope.dutyLeaves(snap: StudentSnapshot, onOpen: () -> Unit) {
+    item("dl-notice") { LocalOnlyNotice(compact = true) }
     item("dl") {
         val pending = snap.unreconciledPending
         EtCard(onClick = onOpen) {

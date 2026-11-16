@@ -95,11 +95,7 @@ fun LogDutyLeaveSheet(
             verticalArrangement = Arrangement.spacedBy(14.dp),
         ) {
             Text("Log duty leave", style = MaterialTheme.typography.headlineSmall)
-            Text(
-                "Projected attendance updates instantly and reconciles automatically once ETLab records it.",
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
+            LocalOnlyNotice()
 
             OutlinedButton(onClick = { pickingDate = true }, modifier = Modifier.fillMaxWidth()) {
                 Icon(Icons.Rounded.CalendarToday, null)

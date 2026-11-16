@@ -5,6 +5,13 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.ExperimentalSharedTransitionApi
 import androidx.compose.animation.SharedTransitionLayout
+import androidx.compose.animation.EnterExitState
+import androidx.compose.animation.core.animateDp
+import androidx.compose.animation.core.CubicBezierEasing
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.scaleOut
+import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -111,16 +118,21 @@ fun MainScaffold(appViewModel: AppViewModel, pendingDestination: MutableStateFlo
         logout = appViewModel::logout,
         download = files::download,
         downloadingUrls = downloading,
-        navigate = { route -> nav.navigate(route) { launchSingleTop = true } },
+        navigate = { route ->
+            // Shortcuts to a tab (e.g. dashboard "Subjects") must behave exactly like tapping the tab,
+            // otherwise the tab ends up stacked on Home and the Home tab can't return to the dashboard.
+            val tab = TopLevel.entries.firstOrNull { it.route == route }
+            if (tab != null) nav.navigateTopLevel(tab) else nav.navigate(route) { launchSingleTop = true }
+        },
         back = { nav.popBackStack() },
     )
 
     CompositionLocalProvider(LocalAppActions provides actions, LocalSnackbar provides snackbar) {
         NavigationSuiteScaffold(
             navigationSuiteItems = {
+                val currentTab = backStack?.let { nav.currentTab() } ?: TopLevel.Dashboard
                 TopLevel.entries.forEach { dest ->
-                    val selected = backStack?.destination?.hierarchy?.any { it.hasRoute(dest.route::class) } == true ||
-                        (dest == TopLevel.More && backStack?.isTopLevel() == false && !isAttendanceChild(backStack))
+                    val selected = dest == currentTab
                     item(
                         selected = selected,
                         onClick = { nav.navigateTopLevel(dest) },
@@ -154,16 +166,31 @@ fun MainScaffold(appViewModel: AppViewModel, pendingDestination: MutableStateFlo
     }
 }
 
-private fun isAttendanceChild(entry: NavBackStackEntry?): Boolean {
-    val d = entry?.destination ?: return false
-    return d.hasRoute(SubjectRoute::class) || d.hasRoute(DutyLeavesRoute::class)
+/** Tab currently shown: the deepest top-level destination in the back stack (Home if none). */
+private fun NavHostController.currentTab(): TopLevel {
+    val stack = currentBackStack.value
+    for (entry in stack.asReversed()) {
+        TopLevel.entries.firstOrNull { t -> entry.destination.hasRoute(t.route::class) }?.let { return it }
+    }
+    return TopLevel.Dashboard
 }
 
 private fun NavHostController.navigateTopLevel(dest: TopLevel) {
-    navigate(dest.route) {
-        popUpTo(graph.findStartDestination().id) { saveState = true }
-        launchSingleTop = true
-        restoreState = true
+    val current = currentTab()
+    when {
+        // Home is the start destination: pop back to it, keeping the tab we leave restorable.
+        dest == TopLevel.Dashboard -> {
+            if (!popBackStack(DashboardRoute, inclusive = false, saveState = current != TopLevel.Dashboard)) {
+                navigate(DashboardRoute) { launchSingleTop = true }
+            }
+        }
+        // Re-selecting the current tab returns to its root screen.
+        dest == current -> popBackStack(dest.route, inclusive = false)
+        else -> navigate(dest.route) {
+            popUpTo(graph.findStartDestination().id) { saveState = true }
+            launchSingleTop = true
+            restoreState = true
+        }
     }
 }
 
@@ -173,7 +200,22 @@ private fun NavGraphBuilder.screen(
 ) {
     @Suppress("UNCHECKED_CAST")
     composable(route as KClass<Any>, typeMap = emptyMap(), deepLinks = emptyList()) { entry ->
-        CompositionLocalProvider(LocalNavAnimatedScope provides this) { content(entry) }
+        // While a screen animates out (e.g. during the predictive-back peek) it becomes a rounded
+        // card, matching the system back animation.
+        val corner by transition.animateDp(
+            // Reach the full radius within the first third of the gesture so the card reads as a card.
+            transitionSpec = { tween(PEEK_MS / 3, easing = LinearEasing) },
+            label = "corner",
+        ) { state -> if (state == EnterExitState.PostExit) 32.dp else 0.dp }
+        Box(
+            Modifier.fillMaxSize().graphicsLayer {
+                val r = corner.toPx()
+                clip = r > 0f
+                shape = RoundedCornerShape(r)
+            },
+        ) {
+            CompositionLocalProvider(LocalNavAnimatedScope provides this@composable) { content(entry) }
+        }
     }
 }
 
@@ -206,11 +248,20 @@ private fun exitFor(s: AnimatedContentTransitionScope<NavBackStackEntry>): ExitT
     if (s.isTabSwitch()) fadeOut(tween(90))
     else slideOutHorizontally(EtMotion.smooth()) { -it / 8 } + fadeOut(tween(200))
 
-private fun popEnterFor(s: AnimatedContentTransitionScope<NavBackStackEntry>): EnterTransition =
-    if (s.isTabSwitch()) fadeIn(tween(220, delayMillis = 60))
-    else slideInHorizontally(EtMotion.smooth()) { -it / 8 } + fadeIn(tween(220))
+/*
+ * Back (including the predictive-back peek, which scrubs these by gesture progress): the screen
+ * being left shrinks into a rounded card and only fades at the very end, while the previous
+ * screen settles in from slightly behind. Tweens with linear-ish easing keep the scrub 1:1
+ * with the finger; springs would lag behind the gesture.
+ */
+private const val PEEK_MS = 340
+private val PeekEasing = CubicBezierEasing(0.2f, 0f, 0f, 1f)
 
-private fun popExitFor(s: AnimatedContentTransitionScope<NavBackStackEntry>): ExitTransition =
-    if (s.isTabSwitch()) fadeOut(tween(90))
-    else slideOutHorizontally(EtMotion.smooth()) { it / 4 } + fadeOut(tween(180))
+private fun popEnterFor(@Suppress("UNUSED_PARAMETER") s: AnimatedContentTransitionScope<NavBackStackEntry>): EnterTransition =
+    scaleIn(tween(PEEK_MS, easing = PeekEasing), initialScale = 0.95f) +
+        fadeIn(tween(PEEK_MS, easing = LinearEasing), initialAlpha = 0.45f)
+
+private fun popExitFor(@Suppress("UNUSED_PARAMETER") s: AnimatedContentTransitionScope<NavBackStackEntry>): ExitTransition =
+    scaleOut(tween(PEEK_MS, easing = PeekEasing), targetScale = 0.88f) +
+        fadeOut(tween(PEEK_MS / 3, delayMillis = PEEK_MS * 2 / 3, easing = LinearEasing))
 

@@ -214,7 +214,7 @@ fun Pill(
         horizontalArrangement = Arrangement.spacedBy(4.dp),
     ) {
         if (icon != null) Icon(icon, null, Modifier.size(14.dp), tint = fg)
-        Text(text, color = fg, style = MaterialTheme.typography.labelMedium, maxLines = 1)
+        Text(text, color = fg, style = MaterialTheme.typography.labelMedium, maxLines = 1, overflow = TextOverflow.Ellipsis)
     }
 }
 

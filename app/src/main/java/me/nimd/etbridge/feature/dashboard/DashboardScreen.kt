@@ -140,8 +140,40 @@ fun DashboardScreen(vm: StudentViewModel = hiltViewModel()) {
                 item("overall") { OverallCard(snap, onOpen = { app.navigate(AttendanceRoute) }, onLog = { logging = true }) }
 
                 val deadlines = snap.evaluations?.assignments.orEmpty()
-                    .filter { !it.status.contains("submit", ignoreCase = true) && !daysRemaining(it.lastDate).isOverdue }
+                    .filter { it.isOpen && !daysRemaining(it.lastDate).isOverdue }
                     .sortedBy { it.lastDate }
+                val today = now.toLocalDate().toString()
+                val upcomingExams = snap.evaluations?.seriesExams.orEmpty()
+                    .filter { !it.isPublished && it.date >= today }
+                    .sortedWith(compareBy({ it.date }, { it.period }))
+                if (upcomingExams.isNotEmpty()) {
+                    item("exams-h") {
+                        SectionHeader("Upcoming exams", subtitle = "${upcomingExams.size} scheduled", action = "All", onAction = { app.navigate(AcademicsRoute) })
+                    }
+                    item("exams") {
+                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                            items(upcomingExams.take(8), key = { it.id }) { e ->
+                                val left = daysRemaining(e.date)
+                                EtCard(Modifier.width(220.dp), onClick = { app.navigate(AcademicsRoute) }) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Text(e.subjectCode, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
+                                        Pill(
+                                            when (left.text) { "Due today" -> "Today"; "1 day left" -> "Tomorrow"; else -> left.text.replace("left", "away") },
+                                            tone = if (left.isUrgent) Tone.Warning else Tone.Neutral,
+                                        )
+                                    }
+                                    Spacer(Modifier.height(6.dp))
+                                    Text(e.title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Text(e.subjectName ?: e.subject, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
+                                    Text(
+                                        listOfNotNull(formatIndianDate(e.date, DateStyle.DayShort), e.period?.takeIf { it.isNotBlank() }?.let { "H$it" }).joinToString(" · "),
+                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
                 if (deadlines.isNotEmpty()) {
                     item("deadlines-h") {
                         SectionHeader("Upcoming deadlines", action = "All", onAction = { app.navigate(AcademicsRoute) })

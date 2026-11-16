@@ -32,6 +32,7 @@ import me.nimd.etbridge.core.model.CourseDetails
 import me.nimd.etbridge.core.model.CourseRisk
 import me.nimd.etbridge.core.model.DayTimetable
 import me.nimd.etbridge.core.model.DutyLeave
+import me.nimd.etbridge.core.model.EvaluationsData
 import me.nimd.etbridge.core.model.EtlabJson
 import me.nimd.etbridge.core.model.FeesData
 import me.nimd.etbridge.core.model.Institute
@@ -42,7 +43,6 @@ import me.nimd.etbridge.core.model.SurveyItem
 import me.nimd.etbridge.core.model.SyllabusTopic
 import me.nimd.etbridge.core.model.Teacher
 import me.nimd.etbridge.core.model.UniversityResult
-import me.nimd.etbridge.core.model.parseLenientDouble
 import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -114,8 +114,10 @@ class EtlabApi @Inject constructor(private val client: HttpClient) {
         val student = json["student"] as? JsonObject
         return LoginResult(
             token = token,
-            name = json.str("name") ?: student?.str("name"),
-            photo = json.str("photo", "image", "student_photo") ?: student?.str("photo", "image"),
+            // ETLab returns profile_name and a relative photo path in `url`.
+            name = json.str("profile_name", "name")?.collapseSpaces() ?: student?.str("name"),
+            photo = (json.str("photo", "image", "student_photo", "url") ?: student?.str("photo", "image"))
+                ?.let(EtlabEndpoints::absolute),
         )
     }
 
@@ -126,12 +128,14 @@ class EtlabApi @Inject constructor(private val client: HttpClient) {
         val student = raw["student"] as? JsonObject
         val profile = raw.decode(StudentProfile.serializer())
         // Same photo-field fallbacks and nested attendance as getProfile() in client.ts
-        val photo = raw.str("photo", "image", "student_photo", "profile_photo", "avatar")
-            ?: student?.str("photo", "image", "student_photo", "avatar")
+        val photo = (
+            raw.str("photo", "image", "student_photo", "profile_photo", "avatar", "url")
+                ?: student?.str("photo", "image", "student_photo", "avatar", "url")
+            )?.let(EtlabEndpoints::absolute)
         val attendance = if (raw["attendance"] is JsonObject) profile.attendance
         else (student?.get("attendance") as? JsonObject)?.decode(me.nimd.etbridge.core.model.AttendanceSummary.serializer())
             ?: profile.attendance
-        return profile.copy(photo = photo, attendance = attendance)
+        return profile.copy(name = profile.name.collapseSpaces(), photo = photo, attendance = attendance)
     }
 
     suspend fun attendance(semId: Int? = null): List<SubjectAttendance> =
@@ -144,7 +148,11 @@ class EtlabApi @Inject constructor(private val client: HttpClient) {
         return list.listOf(DayTimetable.serializer())
     }
 
-    suspend fun teachers(): List<Teacher> = getJson("/teachers").listOf(Teacher.serializer())
+    suspend fun teachers(): List<Teacher> = getJson("/teachers").listOf(Teacher.serializer()).map { t ->
+        t.copy(name = t.name.collapseSpaces(), photo = t.photo?.takeIf { it.isNotBlank() }?.let(EtlabEndpoints::absolute))
+    }
+
+    suspend fun evaluations(): EvaluationsData = getJson("/evaluations").decode(EvaluationsData.serializer())
 
     suspend fun studyMaterials(): List<StudyMaterial> =
         getJson("/studymaterials").listOf(StudyMaterial.serializer()).map { m ->
@@ -192,33 +200,23 @@ class EtlabApi @Inject constructor(private val client: HttpClient) {
     /** Same heuristic as client.ts when the API doesn't compute courses_at_risk. */
     private fun deriveRisks(data: AcademicAnalysis): List<CourseRisk> = buildList {
         for (sem in data.semesters) for (sub in sem.subjects) {
-            val att = ((sub["attendance"] as? JsonObject)?.get("percent") as? JsonPrimitive)
-                ?.contentOrNull?.let { parseLenientDouble(it, 100.0) } ?: 100.0
-            val evals = sub["evaluations"] as? JsonArray
-            var evalAvg = 0.0
-            if (evals != null && evals.isNotEmpty()) {
-                var got = 0.0; var max = 0.0
-                for (e in evals) {
-                    val o = e as? JsonObject ?: continue
-                    got += parseLenientDouble((o["mark"] as? JsonPrimitive)?.contentOrNull)
-                    max += parseLenientDouble((o["maximum_mark"] as? JsonPrimitive)?.contentOrNull, 40.0)
-                }
-                evalAvg = if (max > 0) Math.round(got / max * 100).toDouble() else 0.0
-            }
+            val att = sub.attendance?.takeIf { it.total > 0 }?.percent ?: 100.0
+            val marked = sub.evaluations.filter { it.hasMark && !it.isAbsent }
+            val max = marked.sumOf { if (it.maximumMark > 0) it.maximumMark else 40.0 }
+            val evalAvg = if (max > 0) Math.round(marked.sumOf { it.mark } / max * 100).toDouble() else 0.0
             if (att < 75 || (evalAvg > 0 && evalAvg < 40)) {
-                val reasons = buildList {
-                    if (att < 75) add("Attendance is ${att.toInt()}% (below 75% minimum)")
-                    if (evalAvg > 0 && evalAvg < 40) add("Evaluation average is ${evalAvg.toInt()}%")
-                }
                 add(
                     CourseRisk(
-                        code = sub.str("code") ?: "COURSE",
-                        name = sub.str("subject_name", "subject_full_name", "code") ?: "Course",
+                        code = sub.code.ifBlank { "COURSE" },
+                        name = sub.subjectName.trim().ifBlank { sub.subjectFullName ?: sub.code },
                         semester = sem.semester,
                         attendancePer = att,
                         evaluationAvg = evalAvg,
                         riskLevel = if (att < 68) 4 else if (att < 75) 3 else 2,
-                        reasons = reasons,
+                        reasons = buildList {
+                            if (att < 75) add("Attendance is ${att.toInt()}% (below the 75% minimum)")
+                            if (evalAvg > 0 && evalAvg < 40) add("Internal exam average is ${evalAvg.toInt()}%")
+                        },
                     ),
                 )
             }
@@ -252,3 +250,4 @@ class EtlabApi @Inject constructor(private val client: HttpClient) {
     }
 }
 
+private fun String.collapseSpaces(): String = trim().replace(Regex("\\s+"), " ")

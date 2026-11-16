@@ -44,6 +44,7 @@ import me.nimd.etbridge.core.model.formatCompact
 import me.nimd.etbridge.core.model.formatIndianDate
 import me.nimd.etbridge.ui.EtScreen
 import me.nimd.etbridge.ui.LocalAppActions
+import me.nimd.etbridge.ui.LocalOnlyNotice
 import me.nimd.etbridge.ui.LogDutyLeaveSheet
 import me.nimd.etbridge.ui.StudentViewModel
 
@@ -60,10 +61,11 @@ fun DutyLeavesScreen(vm: StudentViewModel = hiltViewModel()) {
         onBack = app.back,
         actions = { IconButton(onClick = { logging = true }) { Icon(Icons.Rounded.Add, "Log duty leave") } },
     ) {
+        item("local-notice") { LocalOnlyNotice() }
         item("pending-h") {
             SectionHeader(
                 "Pending (self-reported)",
-                subtitle = "Counted in projections until ETLab records them. Swipe to delete.",
+                subtitle = "Counted in projections until ETLab records them. Swipe left to delete.",
             )
         }
         if (pending.isEmpty()) {

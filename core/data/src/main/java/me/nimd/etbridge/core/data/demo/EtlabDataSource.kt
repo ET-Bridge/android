@@ -57,11 +57,7 @@ class RemoteDataSource @Inject constructor(private val api: EtlabApi) : EtlabDat
     override suspend fun attendance() = api.attendance()
     override suspend fun monthTimetable(month: YearMonth) = api.monthTimetable(month)
 
-    /**
-     * The webapp's getEvaluations() is a stub that never calls ETLab (the /evaluations payload
-     * hasn't been mapped yet), so real accounts get no series marks or assignments there either.
-     */
-    override suspend fun evaluations() = EvaluationsData()
+    override suspend fun evaluations() = api.evaluations()
 
     override suspend fun teachers() = api.teachers()
     override suspend fun studyMaterials() = api.studyMaterials()

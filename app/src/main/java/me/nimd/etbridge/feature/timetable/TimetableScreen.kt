@@ -209,9 +209,15 @@ private fun DayPage(
                 if (subs > 0) Pill("$subs substitution${if (subs == 1) "" else "s"}", tone = Tone.Warning)
             }
         }
-        if (entry?.allHoursSuspended == true) {
+        val holiday = entry?.holidayName?.takeIf { exact && it.isNotBlank() }
+        if (entry?.allHoursSuspended == true || (holiday != null && periods.isEmpty())) {
             item("susp") {
-                EmptyState(Icons.Rounded.BeachAccess, "No classes", message = "College holiday or institutional suspension.")
+                EmptyState(
+                    Icons.Rounded.BeachAccess,
+                    holiday?.substringBefore(" — ")?.ifBlank { null } ?: "No classes",
+                    message = holiday?.substringAfter(" — ", "")?.ifBlank { null }?.replaceFirstChar { it.uppercase() }
+                        ?: "College holiday or institutional suspension.",
+                )
             }
         } else if (periods.isEmpty()) {
             item("empty") {

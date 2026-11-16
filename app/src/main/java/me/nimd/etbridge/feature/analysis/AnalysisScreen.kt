@@ -97,7 +97,7 @@ fun AnalysisScreen(vm: StudentViewModel = hiltViewModel()) {
         }
 
         val points = a.semesters.sortedBy { it.position }.mapNotNull { s ->
-            s.sgpa.toDoubleOrNull()?.takeIf { it > 0 }?.let { formatSemester(s.semester, "S") to it }
+            s.sgpaValue?.let { formatSemester(s.semester, "S") to it }
         }
         if (points.size >= 2) {
             item("trend") {
@@ -162,7 +162,7 @@ fun AnalysisScreen(vm: StudentViewModel = hiltViewModel()) {
                             }
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
-                                    s.sgpa.toDoubleOrNull()?.let { "SGPA ${String.format(Locale.ENGLISH, "%.2f", it)}" } ?: s.sgpa.ifBlank { "—" },
+                                    s.sgpaValue?.let { "SGPA ${String.format(Locale.ENGLISH, "%.2f", it)}" } ?: "SGPA —",
                                     style = MaterialTheme.typography.titleSmall.merge(NumberStyle), fontWeight = FontWeight.Bold,
                                 )
                                 if (s.isPassed) Row(verticalAlignment = Alignment.CenterVertically) {

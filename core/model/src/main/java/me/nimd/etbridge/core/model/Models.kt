@@ -63,6 +63,7 @@ data class DayTimetable(
     val day: LString = "",
     val sub: List<TimetablePeriod> = emptyList(),
     @SerialName("all_hours_suspended") val allHoursSuspended: LBool = false,
+    @SerialName("holiday_name") val holidayName: LStringN = null,
 )
 
 @Serializable
@@ -88,6 +89,8 @@ data class StudentProfile(
     val phone: LString = "",
     val gender: LStringN = null,
     val photo: LStringN = null,
+    /** Relative, authenticated photo path (e.g. /api/v1/profile/photos/file/image?v=…). */
+    val url: LStringN = null,
     val attendance: AttendanceSummary = AttendanceSummary(),
     val timetable: List<TimetablePeriod> = emptyList(),
     val notices: List<NoticeItem> = emptyList(),
@@ -123,13 +126,17 @@ data class SeriesExam(
     @SerialName("subject_name") val subjectName: LStringN = null,
     val title: LString = "",
     val date: LString = "",
-    val period: LInt = 0,
+    /** Hours the exam occupies, e.g. "4,5". */
+    val period: LStringN = null,
     @SerialName("maximum_mark") val maximumMark: LDouble = 0.0,
-    /** Numeric mark or a status string like "AB". */
+    /** Numeric mark or a status string like "AB"; blank until published. */
     val mark: LString = "",
     val status: LString = "",
     @SerialName("exam_type") val examType: LStringN = null,
-)
+) {
+    val isPublished: Boolean get() = mark.isNotBlank()
+    val isScheduled: Boolean get() = !isPublished && status.equals("Scheduled", ignoreCase = true)
+}
 
 @Serializable
 data class Assignment(
@@ -152,14 +159,34 @@ data class Assignment(
     @SerialName("max_mark") val maxMark: LStringN = null,
     val mark: LStringN = null,
     @SerialName("submission_kinds") val submissionKinds: List<LString> = emptyList(),
-)
+) {
+    /** Same buckets as the webapp: a mark means Marked; status SUBMITTED means Submitted. */
+    val isMarked: Boolean get() = !mark.isNullOrBlank()
+    val isSubmitted: Boolean get() = status.trim().equals("SUBMITTED", ignoreCase = true)
+    val isOpen: Boolean get() = !isSubmitted && !isMarked
+    /** ETLab sends "0" when an assignment carries no marks. */
+    val maxMarkOrNull: String? get() = maxMark?.takeIf { it.isNotBlank() && it.toDoubleOrNull() != 0.0 }
+}
 
 @Serializable
 data class EvaluationsData(
     val login: LBool = true,
+    @SerialName("eval_types") val evalTypes: List<LString> = emptyList(),
     @SerialName("series_exams") val seriesExams: List<SeriesExam> = emptyList(),
+    @SerialName("module_tests") val moduleTests: List<SeriesExam> = emptyList(),
     val assignments: List<Assignment> = emptyList(),
-)
+    val homeworks: List<Assignment> = emptyList(),
+    val tutorials: List<Assignment> = emptyList(),
+    @SerialName("class_projects") val classProjects: List<Assignment> = emptyList(),
+    val seminars: List<Assignment> = emptyList(),
+    @SerialName("self_studies") val selfStudies: List<Assignment> = emptyList(),
+) {
+    /** Assignment-like work (homework, tutorials, projects…) labelled by kind. */
+    val otherWork: List<Pair<String, Assignment>>
+        get() = homeworks.map { "Homework" to it } + tutorials.map { "Tutorial" to it } +
+            classProjects.map { "Project" to it } + seminars.map { "Seminar" to it } +
+            selfStudies.map { "Self study" to it }
+}
 
 @Serializable
 data class Teacher(
@@ -423,7 +450,38 @@ data class SemesterAnalysis(
     @SerialName("cumulative_credit") val cumulativeCredit: LDouble = 0.0,
     @SerialName("total_backlogs") val totalBacklogs: LInt = 0,
     @SerialName("total_courses") val totalCourses: LInt = 0,
-    val subjects: List<JsonObject> = emptyList(),
+    val subjects: List<AnalysisSubject> = emptyList(),
+) {
+    /** ETLab reports 0 (or text such as "Awaiting") until results are published. */
+    val sgpaValue: Double? get() = sgpa.toDoubleOrNull()?.takeIf { it > 0 }
+}
+
+@Serializable
+data class SubjectEvaluation(
+    val category: LStringN = null,
+    val name: LString = "",
+    @SerialName("exam_id") val examId: LStringN = null,
+    val mark: LDouble = 0.0,
+    @SerialName("has_mark") val hasMark: LBool = false,
+    @SerialName("maximum_mark") val maximumMark: LDouble = 0.0,
+    @SerialName("class_avg") val classAvg: LDouble = 0.0,
+    val rank: LInt = 0,
+    val date: LStringN = null,
+    val status: LStringN = null,
+    @SerialName("is_absent") val isAbsent: LBool = false,
+)
+
+@Serializable
+data class AnalysisSubject(
+    @SerialName("subject_name") val subjectName: LString = "",
+    @SerialName("subject_full_name") val subjectFullName: LStringN = null,
+    val code: LString = "",
+    @SerialName("subject_type") val subjectType: LStringN = null,
+    val attendance: SemesterAttendance? = null,
+    @SerialName("internal_mark") val internalMark: LDouble = 0.0,
+    val result: LStringN = null,
+    val credit: LDouble = 0.0,
+    val evaluations: List<SubjectEvaluation> = emptyList(),
 )
 
 @Serializable

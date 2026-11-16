@@ -1,0 +1,11 @@
+[
+ {
+  "id": 1,
+  "reason": "Inter-College Hackathon Participation (NIT Calicut)",
+  "from_date": "2026-10-12",
+  "to_date": "2026-10-13",
+  "hours": 12,
+  "status": "Approved",
+  "approved_by": "Staff Advisor"
+ }
+]

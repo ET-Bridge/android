@@ -1,0 +1,154 @@
+{
+ "2047": {
+  "id": 2047,
+  "name": "Physics for Information Science",
+  "code": "GAPHT121",
+  "syllabus": [
+   {
+    "id": 1,
+    "module": 1,
+    "topic": "Electrical conductivity & Classical free electron theory",
+    "covered": true,
+    "hours": 2
+   },
+   {
+    "id": 2,
+    "module": 1,
+    "topic": "Quantum free electron theory, Fermi-Dirac statistics",
+    "covered": true,
+    "hours": 2
+   },
+   {
+    "id": 3,
+    "module": 1,
+    "topic": "Density of states, Fermi energy and Fermi temperature",
+    "covered": true,
+    "hours": 2
+   },
+   {
+    "id": 4,
+    "module": 2,
+    "topic": "Semiconductors: Intrinsic and extrinsic semiconductors",
+    "covered": true,
+    "hours": 2
+   },
+   {
+    "id": 5,
+    "module": 2,
+    "topic": "Carrier concentration and Fermi level variation",
+    "covered": false,
+    "hours": 2
+   },
+   {
+    "id": 6,
+    "module": 3,
+    "topic": "Magnetic properties of materials: Dia, Para and Ferro",
+    "covered": false,
+    "hours": 3
+   },
+   {
+    "id": 7,
+    "module": 4,
+    "topic": "Optoelectronics: Light emitting diodes, Solar cells, Photodetectors",
+    "covered": false,
+    "hours": 3
+   },
+   {
+    "id": 8,
+    "module": 5,
+    "topic": "Fiber Optics: Numerical aperture, Acceptance angle, Signal distortion",
+    "covered": false,
+    "hours": 3
+   }
+  ],
+  "outcomes": [
+   {
+    "id": 1,
+    "code": "CO1",
+    "description": "Apply the concepts of quantum mechanics to explain the electrical properties of metals.",
+    "bloom_level": "Apply (Level 3)"
+   },
+   {
+    "id": 2,
+    "code": "CO2",
+    "description": "Analyze the behavior of semiconductors and carrier transport for device applications.",
+    "bloom_level": "Analyze (Level 4)"
+   },
+   {
+    "id": 3,
+    "code": "CO3",
+    "description": "Evaluate magnetic and dielectric materials for engineering storage devices.",
+    "bloom_level": "Evaluate (Level 5)"
+   },
+   {
+    "id": 4,
+    "code": "CO4",
+    "description": "Explain principles of optoelectronic devices and optical fiber communications.",
+    "bloom_level": "Understand (Level 2)"
+   }
+  ],
+  "execution": [
+   {
+    "id": 1,
+    "date": "2026-09-08",
+    "hour": 1,
+    "topic": "Introduction to Information Physics & Syllabus Overview",
+    "status": "conducted"
+   },
+   {
+    "id": 2,
+    "date": "2026-09-12",
+    "hour": 2,
+    "topic": "Classical free electron theory - Postulates and Ohm law derivation",
+    "status": "conducted"
+   },
+   {
+    "id": 3,
+    "date": "2026-09-16",
+    "hour": 3,
+    "topic": "Thermal conductivity & Wiedemann-Franz law",
+    "status": "conducted"
+   },
+   {
+    "id": 4,
+    "date": "2026-10-04",
+    "hour": 1,
+    "topic": "Fermi-Dirac distribution & Probability density",
+    "status": "conducted"
+   },
+   {
+    "id": 5,
+    "date": "2026-10-22",
+    "hour": 2,
+    "topic": "Intrinsic Semiconductor Carrier Concentrations",
+    "status": "conducted"
+   }
+  ],
+  "source_books": [
+   {
+    "id": 1,
+    "title": "Solid State Physics",
+    "author": "S. O. Pillai",
+    "publisher": "New Age International",
+    "edition": "8th Edition",
+    "is_reference": false
+   },
+   {
+    "id": 2,
+    "title": "Introduction to Solid State Physics",
+    "author": "Charles Kittel",
+    "publisher": "Wiley",
+    "edition": "7th Edition",
+    "is_reference": true
+   },
+   {
+    "id": 3,
+    "title": "Principles of Electronic Materials and Devices",
+    "author": "S. O. Kasap",
+    "publisher": "McGraw-Hill",
+    "edition": "3rd Edition",
+    "is_reference": true
+   }
+  ]
+ }
+}

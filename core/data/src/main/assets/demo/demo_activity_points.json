@@ -1,0 +1,30 @@
+{
+ "flow": "legacy",
+ "total_points_awarded": 65,
+ "awarded": [
+  {
+   "id": 1,
+   "activity_name": "NSS Volunteer (2 Years)",
+   "points": 40,
+   "category": "National Service",
+   "semester": "S3-S4",
+   "status": "Approved"
+  },
+  {
+   "id": 2,
+   "activity_name": "State Level Hackathon Winner",
+   "points": 15,
+   "category": "Technical Competitions",
+   "semester": "S4",
+   "status": "Approved"
+  },
+  {
+   "id": 3,
+   "activity_name": "College Technical Fest Coordinator",
+   "points": 10,
+   "category": "Student Leadership",
+   "semester": "S5",
+   "status": "Approved"
+  }
+ ]
+}

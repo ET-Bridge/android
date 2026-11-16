@@ -1,0 +1,32 @@
+[
+ {
+  "id": 6384,
+  "title": "Projection of Lines & Planes (Module 1 Notes)",
+  "subject": "Engineering Graphics & CAD",
+  "module": 1,
+  "file_name": "Module1_EG_Notes.pdf",
+  "link": "#",
+  "added_on": "2026-10-08",
+  "details": "Complete step-by-step solved problems on true inclination and apparent angles."
+ },
+ {
+  "id": 6385,
+  "title": "Finite Automata & Regular Expressions (Module 1 & 2)",
+  "subject": "Formal Languages & Automata Theory",
+  "module": "1 & 2",
+  "file_name": "FLAT_Module1_2.pdf",
+  "link": "#",
+  "added_on": "2026-09-24",
+  "details": "DFA, NFA minimization algorithms, and equivalence theorems."
+ },
+ {
+  "id": 6386,
+  "title": "TCP/IP Protocol Suite & Subnetting Guide",
+  "subject": "Computer Networks",
+  "module": 3,
+  "file_name": "CN_Subnetting_Guide.pdf",
+  "link": "#",
+  "added_on": "2026-10-18",
+  "details": "IPv4 addressing, CIDR, VLSM allocation problems and solutions."
+ }
+]

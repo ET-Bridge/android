@@ -1,0 +1,23 @@
+{
+ "login": true,
+ "total_fee": 45000,
+ "total_paid": 45000,
+ "total_balance": 0,
+ "has_due": false,
+ "can_pay": false,
+ "fee_types": [
+  {
+   "fee_type_id": 1,
+   "fee_type_name": "Semester Tuition & Special Fee",
+   "installments": [
+    {
+     "name": "Semester 5 Fee",
+     "amount": 45000,
+     "paid": 45000,
+     "status": "Paid",
+     "receipt_no": "REC-2026-5821"
+    }
+   ]
+  }
+ ]
+}

@@ -1,0 +1,73 @@
+{
+ "login": true,
+ "series_exams": [
+  {
+   "id": 1,
+   "subject": "Formal Languages and Automata Theory",
+   "subject_code": "CST301",
+   "title": "Series Exam 1",
+   "date": "2026-09-15",
+   "period": 1,
+   "maximum_mark": 50,
+   "mark": 44,
+   "status": "Evaluated"
+  },
+  {
+   "id": 2,
+   "subject": "Computer Networks",
+   "subject_code": "CST303",
+   "title": "Series Exam 1",
+   "date": "2026-09-16",
+   "period": 1,
+   "maximum_mark": 50,
+   "mark": 41.5,
+   "status": "Evaluated"
+  },
+  {
+   "id": 3,
+   "subject": "System Software",
+   "subject_code": "CST305",
+   "title": "Series Exam 1",
+   "date": "2026-09-17",
+   "period": 1,
+   "maximum_mark": 50,
+   "mark": 38,
+   "status": "Evaluated"
+  },
+  {
+   "id": 4,
+   "subject": "Management of Software Systems",
+   "subject_code": "CST307",
+   "title": "Series Exam 1",
+   "date": "2026-09-18",
+   "period": 1,
+   "maximum_mark": 50,
+   "mark": 46,
+   "status": "Evaluated"
+  }
+ ],
+ "assignments": [
+  {
+   "id": 101,
+   "subject": "Computer Networks",
+   "subject_code": "CST303",
+   "title": "Assignment 2: Subnetting & Routing Algorithms",
+   "details": "Solve the provided subnet allocation problems and submit handwritten paper or PDF.",
+   "issue_date": "2026-10-15",
+   "last_date": "2026-10-31",
+   "status": "Submitted",
+   "max_mark": 15
+  },
+  {
+   "id": 102,
+   "subject": "Formal Languages & Automata",
+   "subject_code": "CST301",
+   "title": "Assignment 2: Turing Machine Design",
+   "details": "Construct standard Turing Machines for palindrome recognition and unary multiplication.",
+   "issue_date": "2026-10-20",
+   "last_date": "2026-11-04",
+   "status": "Pending",
+   "max_mark": 15
+  }
+ ]
+}

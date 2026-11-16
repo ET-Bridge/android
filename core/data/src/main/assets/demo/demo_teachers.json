@@ -1,0 +1,58 @@
+[
+ {
+  "id": 1,
+  "name": "Dr. Meera Krishnan",
+  "subject": "Department of Computer Science",
+  "role_label": "Head of Department",
+  "is_hod": true,
+  "photo": "https://images.unsplash.com/photo-1573496359142-b8d87734a5a2?w=150&auto=format&fit=crop&q=80",
+  "email": "meera.k@engg.edu.in",
+  "phone": "+91 90000 10001"
+ },
+ {
+  "id": 2,
+  "name": "Prof. Rahul Menon",
+  "subject": "Computer Science & Engineering",
+  "role_label": "Staff Advisor",
+  "is_staff_advisor": true,
+  "photo": "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&auto=format&fit=crop&q=80",
+  "email": "rahul.menon@engg.edu.in",
+  "phone": "+91 90000 10002"
+ },
+ {
+  "id": 3,
+  "name": "Dr. Suresh Kumar",
+  "subject": "Formal Languages and Automata Theory (CST301)",
+  "role_label": "Faculty",
+  "photo": "https://images.unsplash.com/photo-1500648767791-00dcc994a43e?w=150&auto=format&fit=crop&q=80",
+  "email": "suresh.kumar@engg.edu.in",
+  "phone": "+91 94471 23456"
+ },
+ {
+  "id": 4,
+  "name": "Prof. Anjali Nair",
+  "subject": "Computer Networks (CST303)",
+  "role_label": "Faculty",
+  "photo": "https://images.unsplash.com/photo-1580489944761-15a19d654956?w=150&auto=format&fit=crop&q=80",
+  "email": "anjali.nair@engg.edu.in",
+  "phone": "+91 98952 34567"
+ },
+ {
+  "id": 5,
+  "name": "Dr. Manoj V.",
+  "subject": "System Software (CST305)",
+  "role_label": "Faculty",
+  "photo": "https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&auto=format&fit=crop&q=80",
+  "email": "manoj.v@engg.edu.in",
+  "phone": "+91 97443 45678"
+ },
+ {
+  "id": 6,
+  "name": "Dr. Revathi Pillai",
+  "subject": "Management of Software Systems (CST307)",
+  "role_label": "Faculty",
+  "photo": "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&auto=format&fit=crop&q=80",
+  "email": "revathi.p@engg.edu.in",
+  "phone": "+91 94964 56789"
+ }
+]

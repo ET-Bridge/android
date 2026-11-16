@@ -1,0 +1,102 @@
+{
+ "login": true,
+ "name": "Arjun K. V.",
+ "student_id": 12973,
+ "roll_no": "22",
+ "admission_no": "KTU22CS045",
+ "register_no": "KTU22CS045",
+ "curnt_sem": "S5",
+ "sem_id": 5,
+ "batch_id": 2022,
+ "course": "Computer Science and Engineering",
+ "email": "arjun.cs22@engg.edu.in",
+ "phone": "+91 98765 43210",
+ "gender": "Male",
+ "photo": "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80",
+ "attendance": {
+  "total_classes": 184,
+  "classes_attended": 154,
+  "percentage": 83.7
+ },
+ "timetable": [
+  {
+   "hour": 1,
+   "type": "T",
+   "subject_type": "Theory",
+   "subject": "Formal Languages and Automata Theory",
+   "subject_code": "CST301",
+   "teacher_name": "Dr. Suresh Kumar",
+   "attendance_status": "present"
+  },
+  {
+   "hour": 2,
+   "type": "T",
+   "subject_type": "Theory",
+   "subject": "Computer Networks",
+   "subject_code": "CST303",
+   "teacher_name": "Prof. Anjali Nair",
+   "attendance_status": "present"
+  },
+  {
+   "hour": 3,
+   "type": "T",
+   "subject_type": "Theory",
+   "subject": "System Software",
+   "subject_code": "CST305",
+   "teacher_name": "Dr. Manoj V.",
+   "attendance_status": "absent"
+  },
+  {
+   "hour": 4,
+   "type": "L",
+   "subject_type": "Lab",
+   "subject": "System Software & Microprocessors Lab",
+   "subject_code": "CSL331",
+   "teacher_name": "Prof. Divya R.",
+   "attendance_status": "present"
+  },
+  {
+   "hour": 5,
+   "type": "L",
+   "subject_type": "Lab",
+   "subject": "System Software & Microprocessors Lab",
+   "subject_code": "CSL331",
+   "teacher_name": "Prof. Divya R.",
+   "attendance_status": "present"
+  },
+  {
+   "hour": 6,
+   "type": "T",
+   "subject_type": "Theory",
+   "subject": "Management of Software Systems",
+   "subject_code": "CST307",
+   "teacher_name": "Dr. Revathi Pillai",
+   "attendance_status": "not_marked"
+  }
+ ],
+ "notices": [
+  {
+   "id": 1,
+   "title": "Series Exam II Schedule Published",
+   "content": "Series Examination 2 for S5 B.Tech will commence from next Monday. Timetable is available on the departmental notice board.",
+   "date": "2026-10-28",
+   "posted_by": "Academic Cell"
+  },
+  {
+   "id": 2,
+   "title": "Duty Leave submission deadline for Tech Fest",
+   "content": "All volunteers and participants must submit duty leave forms before 4:00 PM this Friday.",
+   "date": "2026-10-25",
+   "posted_by": "Staff Advisor"
+  }
+ ],
+ "circulars": [
+  {
+   "id": 101,
+   "title": "KTU Exam Registration Notification — Nov 2026",
+   "description": "Registration for regular and supplementary university exams is open on KTU portal.",
+   "date": "2026-10-27",
+   "url": "#"
+  }
+ ]
+}

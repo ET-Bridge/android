@@ -1,0 +1,75 @@
+{
+ "name": "ARJUN K V",
+ "cgpa": 0,
+ "earned_credit": 0,
+ "total_credit": 20,
+ "total_backlogs": 0,
+ "total_passed": 0,
+ "total_exams": 7,
+ "student": {
+  "name": "ARJUN K V",
+  "admissionNo": "KTU22CS045",
+  "batch": "2K26",
+  "current_sem": 1,
+  "cgpa": 0,
+  "cumulative_credit": 0,
+  "total_backlogs": 0,
+  "current_backlogs": 0
+ },
+ "courses_at_risk": [
+  {
+   "code": "GMEST103",
+   "name": "Engineering Graphics and Computer Aided Drawing",
+   "semester": "Semester 1",
+   "attendance_per": 66,
+   "evaluation_avg": 15,
+   "risk_level": 4,
+   "reasons": [
+    "Attendance is 66% (below 75% KTU minimum)",
+    "Series evaluation average is 15%"
+   ]
+  },
+  {
+   "code": "GXEST104",
+   "name": "Introduction to Electrical & Electronics Engineering",
+   "semester": "Semester 1",
+   "attendance_per": 72,
+   "evaluation_avg": 33,
+   "risk_level": 4,
+   "reasons": [
+    "Attendance is 72% (below 75% minimum)",
+    "Series exam average needs improvement"
+   ]
+  },
+  {
+   "code": "GAPHT121",
+   "name": "Physics for Information Science",
+   "semester": "Semester 1",
+   "attendance_per": 80,
+   "evaluation_avg": 28,
+   "risk_level": 2,
+   "reasons": [
+    "Series evaluation average is 28% (requires 40% for full internal eligibility)"
+   ]
+  }
+ ],
+ "semesters": [
+  {
+   "position": 1,
+   "semester": "Semester 1",
+   "sgpa": "Awaiting",
+   "credit": 0,
+   "is_passed": 0,
+   "result": "NOT PUBLISHED",
+   "attendance": {
+    "present": 147,
+    "total": 190,
+    "percent": 77
+   },
+   "cumulative_cgpa": 0,
+   "cumulative_credit": 0,
+   "total_backlogs": 0,
+   "total_courses": 7
+  }
+ ]
+}

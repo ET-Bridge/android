@@ -1,0 +1,98 @@
+[
+ {
+  "id": 2047,
+  "name": "Physics for Information Science",
+  "code": "GAPHT121",
+  "credits": 4,
+  "type": "Theory",
+  "slot": "B",
+  "hours": 3,
+  "teacher_name": "Dr. Lakshmi Varma",
+  "atten_text": "10 / 10",
+  "atten_per": "100.00"
+ },
+ {
+  "id": 1889,
+  "name": "Algorithmic Thinking with Python",
+  "code": "UCEST105",
+  "credits": 4,
+  "type": "No University Exam. Internal Only (Theory)",
+  "slot": "B",
+  "hours": 5,
+  "teacher_name": "Prof. Farhan Ali",
+  "atten_text": "21 / 23",
+  "atten_per": "91.30"
+ },
+ {
+  "id": 1890,
+  "name": "Algorithmic Thinking with Python (Lab)",
+  "code": "UCEST105",
+  "credits": 4,
+  "type": "No University Exam. Internal Only (Practical)",
+  "slot": "B",
+  "hours": 5,
+  "teacher_name": "Prof. Farhan Ali",
+  "atten_text": "10 / 10",
+  "atten_per": "100.00"
+ },
+ {
+  "id": 2048,
+  "name": "Engineering Graphics and Computer Aided Drawing",
+  "code": "GMEST103",
+  "credits": 3,
+  "type": "Theory",
+  "slot": "C",
+  "hours": 4,
+  "teacher_name": "Prof. Nikhil Das",
+  "atten_text": "23 / 35",
+  "atten_per": "65.71"
+ },
+ {
+  "id": 2049,
+  "name": "Introduction to Electrical & Electronics Engineering",
+  "code": "GXEST104",
+  "credits": 4,
+  "type": "Theory",
+  "slot": "D",
+  "hours": 4,
+  "teacher_name": "Dr. Kavya Iyer, Prof. Deepa Thomas",
+  "atten_text": "23 / 32",
+  "atten_per": "71.88"
+ },
+ {
+  "id": 2050,
+  "name": "Mathematics for Information Science - 1",
+  "code": "GAMAT101",
+  "credits": 3,
+  "type": "Theory",
+  "slot": "A",
+  "hours": 3,
+  "teacher_name": "Dr. Priya Raman",
+  "atten_text": "23 / 30",
+  "atten_per": "76.67"
+ },
+ {
+  "id": 2051,
+  "name": "Basic Electrical and Electronics Engineering Workshop",
+  "code": "GXESL106",
+  "credits": 1,
+  "type": "Practical",
+  "slot": "P",
+  "hours": 2,
+  "teacher_name": "Dr. Kavya Iyer, Prof. Deepa Thomas, Prof. Joel Mathew",
+  "atten_text": "24 / 30",
+  "atten_per": "80.00"
+ },
+ {
+  "id": 2052,
+  "name": "Life Skills and Professional Communication",
+  "code": "UCHUT128",
+  "credits": 1,
+  "type": "No University Exam. Internal Only (Theory)",
+  "slot": "E",
+  "hours": 3,
+  "teacher_name": "Prof. Sana Pillai",
+  "atten_text": "17 / 20",
+  "atten_per": "85.00"
+ }
+]

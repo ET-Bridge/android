@@ -1,9 +1,12 @@
+import java.util.Properties
+
 plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.kotlin.serialization)
     alias(libs.plugins.ksp)
     alias(libs.plugins.hilt)
+    alias(libs.plugins.baselineprofile)
 }
 
 android {
@@ -19,14 +22,27 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }
 
+    // Release signing comes from keystore.properties (git-ignored; see keystore.properties.example).
+    // Without it, release builds fall back to the debug key so anyone can still build and test.
+    val keystoreFile = rootProject.file("keystore.properties")
+    val releaseSigning = if (keystoreFile.exists()) {
+        val props = Properties().apply { keystoreFile.inputStream().use(::load) }
+        signingConfigs.create("release") {
+            storeFile = file(props.getProperty("storeFile"))
+            storePassword = props.getProperty("storePassword")
+            keyAlias = props.getProperty("keyAlias")
+            keyPassword = props.getProperty("keyPassword")
+        }
+    } else {
+        signingConfigs.getByName("debug")
+    }
+
     buildTypes {
         release {
             isMinifyEnabled = true
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
-            // Until a release keystore is configured, sign release builds with the debug key
-            // so they can be installed for performance testing.
-            signingConfig = signingConfigs.getByName("debug")
+            signingConfig = releaseSigning
         }
     }
 
@@ -41,9 +57,28 @@ android {
     }
 }
 
+// Benchmark / profile-generation builds MUST use their own package: the connected-test runner
+// installs them and uninstalls them afterwards, which would otherwise wipe the real app (and its
+// local-only data) on the device. Set via the variant API because the baseline-profile plugin
+// creates these build types itself and copies the release settings over them.
+androidComponents {
+    onVariants { variant ->
+        if (variant.buildType == "benchmarkRelease" || variant.buildType == "nonMinifiedRelease") {
+            variant.applicationId.set("me.nimd.etbridge.bench")
+        }
+    }
+}
+
+baselineProfile {
+    // Regenerate with: ./gradlew :app:generateBaselineProfile (needs a connected device)
+    automaticGenerationDuringBuild = false
+    dexLayoutOptimization = true
+}
+
 dependencies {
     implementation(project(":core:data"))
     implementation(project(":core:designsystem"))
+    baselineProfile(project(":baselineprofile"))
 
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.core.splashscreen)

@@ -8,6 +8,11 @@ import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -330,7 +335,19 @@ private fun DayCell(day: Int, summary: DaySummary?, selected: Boolean, today: Bo
             .clip(MaterialTheme.shapes.small)
             .background(bg)
             .border(2.dp, border, MaterialTheme.shapes.small)
-            .clickable(onClick = onClick),
+            .selectable(selected = selected, role = Role.Button, onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = buildString {
+                    append("Day $day")
+                    if (today) append(", today")
+                    when {
+                        summary == null -> append(", no data")
+                        summary.suspended -> append(", no classes")
+                        summary.marked > 0 -> append(", ${summary.present} present, ${summary.absent} absent" + if (summary.dutyLeave > 0) ", ${summary.dutyLeave} duty leave" else "")
+                    }
+                }
+                this.selected = selected
+            },
         contentAlignment = Alignment.Center,
     ) {
         Column(horizontalAlignment = Alignment.CenterHorizontally) {

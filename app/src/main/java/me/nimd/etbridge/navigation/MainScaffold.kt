@@ -21,7 +21,12 @@ import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.text.BasicText
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Icon
+import androidx.compose.material3.LocalContentColor
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.ui.unit.sp
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
@@ -137,7 +142,15 @@ fun MainScaffold(appViewModel: AppViewModel, pendingDestination: MutableStateFlo
                         selected = selected,
                         onClick = { nav.navigateTopLevel(dest) },
                         icon = { Icon(if (selected) dest.selectedIcon else dest.icon, contentDescription = null) },
-                        label = { Text(dest.label) },
+                        // Labels never wrap; at large font sizes they shrink a little instead.
+                        label = {
+                            BasicText(
+                                dest.label,
+                                maxLines = 1,
+                                style = MaterialTheme.typography.labelMedium.copy(color = LocalContentColor.current),
+                                autoSize = TextAutoSize.StepBased(minFontSize = 6.sp, maxFontSize = MaterialTheme.typography.labelMedium.fontSize),
+                            )
+                        },
                     )
                 }
             },

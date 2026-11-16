@@ -17,6 +17,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
@@ -330,9 +331,12 @@ private fun LiveClassCard(focus: ScheduleFocus, now: LocalDateTime, onOpen: () -
                 ),
             )
             Spacer(Modifier.width(8.dp))
-            Text(label.uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary)
-            Spacer(Modifier.weight(1f))
-            Text("Full timetable", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                label.uppercase(), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary,
+                maxLines = 1, overflow = TextOverflow.Ellipsis, modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(8.dp))
+            Text("Full timetable", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1)
             Icon(Icons.AutoMirrored.Rounded.ArrowForward, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onSurfaceVariant)
         }
         Spacer(Modifier.height(10.dp))
@@ -453,13 +457,13 @@ private fun QuickLinks(navigate: (Any) -> Unit) {
     )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         items(links, key = { it.label }) { l ->
-            EtCard(Modifier.width(96.dp), onClick = { navigate(l.route) }, contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)) {
+            EtCard(Modifier.widthIn(min = 96.dp), onClick = { navigate(l.route) }, contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)) {
                 Box(
                     Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
                     contentAlignment = Alignment.Center,
                 ) { Icon(l.icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
                 Spacer(Modifier.height(8.dp))
-                Text(l.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold)
+                Text(l.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
             }
         }
     }

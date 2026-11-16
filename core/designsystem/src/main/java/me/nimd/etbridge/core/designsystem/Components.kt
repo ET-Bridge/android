@@ -57,7 +57,10 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.semantics.ProgressBarRangeInfo
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.progressBarRangeInfo
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -167,7 +170,16 @@ fun AttendanceBar(
     val anim = remember { Animatable(0f) }
     LaunchedEffect(percentage) { anim.animateTo((percentage / 100).toFloat().coerceIn(0f, 1f), EtMotion.slow()) }
     val proj by animateFloatAsState(((projected ?: percentage) / 100).toFloat().coerceIn(0f, 1f), EtMotion.slow(), label = "proj")
-    Canvas(modifier.fillMaxWidth().height(height)) {
+    Canvas(
+        modifier.fillMaxWidth().height(height).semantics {
+            progressBarRangeInfo = ProgressBarRangeInfo((percentage / 100).toFloat().coerceIn(0f, 1f), 0f..1f)
+            contentDescription = buildString {
+                append(String.format(Locale.ENGLISH, "%.1f percent", percentage))
+                if (projected != null && projected > percentage) append(String.format(Locale.ENGLISH, ", %.1f percent with duty leave", projected))
+                append(String.format(Locale.ENGLISH, ", target %.0f percent", target))
+            }
+        },
+    ) {
         val h = size.height
         val r = androidx.compose.ui.geometry.CornerRadius(h / 2, h / 2)
         drawRoundRect(track, cornerRadius = r)
@@ -271,7 +283,10 @@ fun SectionHeader(
 ) {
     Row(modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
         Column(Modifier.weight(1f)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
+            Text(
+                title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
+                modifier = Modifier.semantics { heading() },
+            )
             if (subtitle != null) {
                 Text(subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
             }

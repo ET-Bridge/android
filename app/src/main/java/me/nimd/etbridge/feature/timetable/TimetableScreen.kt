@@ -2,7 +2,11 @@ package me.nimd.etbridge.feature.timetable
 
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.selected
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -155,7 +159,12 @@ private fun WeekStrip(
                     .weight(1f)
                     .clip(MaterialTheme.shapes.medium)
                     .background(bg)
-                    .clickable { onSelect(d) }
+                    .selectable(selected = isSel, role = Role.Tab) { onSelect(d) }
+                    .clearAndSetSemantics {
+                        contentDescription = d.dayOfWeek.getDisplayName(TextStyle.FULL, Locale.ENGLISH) + " " +
+                            d.dayOfMonth + if (d == today) ", today" else ""
+                        this.selected = isSel
+                    }
                     .padding(vertical = 10.dp),
                 horizontalAlignment = Alignment.CenterHorizontally,
             ) {

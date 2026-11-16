@@ -3,7 +3,8 @@ package me.nimd.etbridge.ui
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.selection.toggleable
+import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
@@ -120,7 +121,7 @@ fun LogDutyLeaveSheet(
                                 if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) else MaterialTheme.colorScheme.surfaceContainer,
                                 MaterialTheme.shapes.medium,
                             )
-                            .clickable {
+                            .toggleable(value = selected, role = Role.Checkbox) {
                                 hours = if (selected) hours - slot.hour else (hours + slot.hour).sorted()
                                 error = null
                             }

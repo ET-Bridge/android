@@ -35,6 +35,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.unit.dp
 import me.nimd.etbridge.core.designsystem.AttendanceBar
 import me.nimd.etbridge.core.designsystem.AttendanceRing
@@ -230,8 +232,14 @@ fun HourChip(period: TimetablePeriod, active: Boolean, modifier: Modifier = Modi
         else -> MaterialTheme.colorScheme.surfaceContainerHigh
     }
     val fg = if (active) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    val spoken = buildString {
+        append("Hour ${period.hour}, ${period.subject.ifBlank { period.subjectCode }}")
+        if (active) append(", now")
+        if (showStatus && period.attendanceStatus != null && st != PeriodStatus.Other) append(", ${st.name.lowercase()}")
+    }
     Column(
         modifier
+            .clearAndSetSemantics { contentDescription = spoken }
             .widthIn(min = 76.dp)
             .clip(RoundedCornerShape(14.dp))
             .background(bg)

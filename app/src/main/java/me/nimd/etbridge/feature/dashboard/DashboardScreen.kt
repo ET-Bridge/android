@@ -356,7 +356,7 @@ private fun LiveClassCard(focus: ScheduleFocus, now: LocalDateTime, onOpen: () -
             Spacer(Modifier.height(14.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 items(focus.periods, key = { it.hour }) { p ->
-                    HourChip(p, active = p.hour == focus.activeHour && focus.activeHour != 0)
+                    HourChip(p, active = p.hour == focus.activeHour && focus.activeHour != 0, showStatus = !focus.isTomorrow)
                 }
             }
         }

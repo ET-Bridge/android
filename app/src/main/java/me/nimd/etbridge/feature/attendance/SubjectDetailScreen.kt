@@ -235,7 +235,7 @@ private fun WhatIfCard(p: SubjectProjection) {
             SegmentedButton(!attend, { attend = false }, SegmentedButtonDefaults.itemShape(0, 2)) { Text("I skip") }
             SegmentedButton(attend, { attend = true }, SegmentedButtonDefaults.itemShape(1, 2)) { Text("I attend") }
         }
-        Slider(value = hours, onValueChange = { hours = it }, valueRange = 0f..20f, steps = 19)
+        Slider(value = hours, onValueChange = { hours = it }, valueRange = 0f..20f)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(
                 if (n == 0) "No change" else "${if (attend) "Attend" else "Skip"} next $n hour${if (n == 1) "" else "s"}",

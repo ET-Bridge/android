@@ -221,7 +221,7 @@ fun PeriodRow(
 
 /** Compact "chip" rail of a day's hours used on the dashboard. */
 @Composable
-fun HourChip(period: TimetablePeriod, active: Boolean, modifier: Modifier = Modifier) {
+fun HourChip(period: TimetablePeriod, active: Boolean, modifier: Modifier = Modifier, showStatus: Boolean = true) {
     val st = period.status()
     val bg = when {
         active -> MaterialTheme.colorScheme.primary
@@ -237,7 +237,7 @@ fun HourChip(period: TimetablePeriod, active: Boolean, modifier: Modifier = Modi
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text("H${period.hour}", style = MaterialTheme.typography.labelSmall, color = fg.copy(alpha = 0.8f), modifier = Modifier.weight(1f))
-            if (period.attendanceStatus != null && st != PeriodStatus.Other) {
+            if (showStatus && period.attendanceStatus != null && st != PeriodStatus.Other) {
                 Box(Modifier.size(7.dp).clip(CircleShape).background(statusColor(st)))
             }
         }

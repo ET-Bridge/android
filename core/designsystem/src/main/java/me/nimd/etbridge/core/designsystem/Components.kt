@@ -95,6 +95,7 @@ fun AttendanceRing(
     val color = attendanceColor(projected ?: percentage, target)
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
     val pendingColor = EtTheme.status.pending
+    val tickColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.55f)
     val anim = remember { Animatable(0f) }
     LaunchedEffect(percentage) {
         anim.animateTo((percentage / 100.0).toFloat().coerceIn(0f, 1f), EtMotion.slow())
@@ -128,13 +129,14 @@ fun AttendanceRing(
             val angle = Math.toRadians(-90.0 + 360.0 * target / 100.0)
             val r = (this.size.minDimension - strokePx) / 2
             val c = center
-            val inner = r - strokePx * 0.9f
-            val outer = r + strokePx * 0.9f
+            // Target tick stays inside the track so it never pokes out of the ring.
+            val inner = r - strokePx * 0.45f
+            val outer = r + strokePx * 0.45f
             drawLine(
-                color = Color.White.copy(alpha = 0.7f),
+                color = tickColor,
                 start = Offset(c.x + inner * kotlin.math.cos(angle).toFloat(), c.y + inner * kotlin.math.sin(angle).toFloat()),
                 end = Offset(c.x + outer * kotlin.math.cos(angle).toFloat(), c.y + outer * kotlin.math.sin(angle).toFloat()),
-                strokeWidth = strokePx / 3,
+                strokeWidth = strokePx / 4,
                 cap = StrokeCap.Round,
             )
         }

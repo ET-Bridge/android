@@ -28,7 +28,7 @@ import androidx.compose.material.icons.rounded.ChevronLeft
 import androidx.compose.material.icons.rounded.ChevronRight
 import androidx.compose.material.icons.rounded.DonutLarge
 import androidx.compose.material.icons.rounded.EventAvailable
-import androidx.compose.material.icons.rounded.Sort
+import androidx.compose.material.icons.automirrored.rounded.Sort
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.Icon
@@ -50,7 +50,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.nimd.etbridge.core.designsystem.AttendanceRing
 import me.nimd.etbridge.core.designsystem.EmptyState
@@ -97,7 +97,7 @@ fun AttendanceScreen(vm: StudentViewModel = hiltViewModel()) {
         actions = {
             IconButton(onClick = { logging = true }) { Icon(Icons.Rounded.Add, "Log duty leave") }
             Box {
-                IconButton(onClick = { sortMenu = true }) { Icon(Icons.Rounded.Sort, "Sort") }
+                IconButton(onClick = { sortMenu = true }) { Icon(Icons.AutoMirrored.Rounded.Sort, "Sort") }
                 DropdownMenu(sortMenu, onDismissRequest = { sortMenu = false }) {
                     SortMode.entries.forEach { m ->
                         DropdownMenuItem(text = { Text(m.label) }, onClick = { sort = m; sortMenu = false })

@@ -19,7 +19,7 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.Assignment
+import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.rounded.Call
 import androidx.compose.material.icons.rounded.Description
 import androidx.compose.material.icons.rounded.Download
@@ -58,7 +58,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
@@ -211,7 +211,7 @@ private fun LazyListScope.assignments(snap: StudentSnapshot, filter: Int, onFilt
     }
     val list = (if (filter == 3) all else all.filter { it.bucket() == filter }).sortedBy { it.lastDate }
     if (list.isEmpty()) {
-        item { EmptyState(Icons.Rounded.Assignment, "No assignments here") }
+        item { EmptyState(Icons.AutoMirrored.Rounded.Assignment, "No assignments here") }
         return
     }
     list.forEach { a ->

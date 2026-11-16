@@ -25,7 +25,7 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.automirrored.rounded.MenuBook
 import androidx.compose.material.icons.rounded.AccountBalance
 import androidx.compose.material.icons.rounded.Add
-import androidx.compose.material.icons.rounded.Assignment
+import androidx.compose.material.icons.automirrored.rounded.Assignment
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Insights
 import androidx.compose.material.icons.rounded.WarningAmber
@@ -50,7 +50,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.hilt.navigation.compose.hiltViewModel
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.SubcomposeAsyncImage
 import me.nimd.etbridge.core.designsystem.AttendanceRing
@@ -417,7 +417,7 @@ private fun QuickLinks(navigate: (Any) -> Unit) {
         Link("Analysis", Icons.Rounded.Insights, AnalysisRoute),
         Link("Campus", Icons.Rounded.AccountBalance, CampusRoute),
         Link("Notices", Icons.Rounded.Campaign, NoticesRoute),
-        Link("Marks", Icons.Rounded.Assignment, AcademicsRoute),
+        Link("Marks", Icons.AutoMirrored.Rounded.Assignment, AcademicsRoute),
     )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
         items(links, key = { it.label }) { l ->

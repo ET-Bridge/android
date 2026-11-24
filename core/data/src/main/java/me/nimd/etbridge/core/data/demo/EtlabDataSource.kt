@@ -9,7 +9,11 @@ import kotlinx.serialization.KSerializer
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.builtins.MapSerializer
 import kotlinx.serialization.builtins.serializer
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.async
+import kotlinx.coroutines.coroutineScope
 import me.nimd.etbridge.core.data.network.EtlabApi
+import me.nimd.etbridge.core.domain.AttendanceMerge
 import me.nimd.etbridge.core.model.AcademicAnalysis
 import me.nimd.etbridge.core.model.ActivityPointsData
 import me.nimd.etbridge.core.model.Course
@@ -55,7 +59,21 @@ interface EtlabDataSource {
 class RemoteDataSource @Inject constructor(private val api: EtlabApi) : EtlabDataSource {
     override suspend fun profile() = api.profile()
     override suspend fun attendance() = api.attendance()
-    override suspend fun monthTimetable(month: YearMonth) = api.monthTimetable(month)
+
+    /**
+     * The scheduled timetable with ETLab's attendance records overlaid, so each marked hour
+     * shows the subject actually taught (what ETLab's own calendar shows). If the attendance
+     * call fails we still return the schedule; the next sync corrects it.
+     */
+    override suspend fun monthTimetable(month: YearMonth): List<DayTimetable> = coroutineScope {
+        val attendance = async { runCatching { api.attendanceByDay(month) } }
+        val scheduled = api.monthTimetable(month)
+        val records = attendance.await().getOrElse { e ->
+            if (e is CancellationException) throw e
+            null
+        }
+        AttendanceMerge.merge(scheduled, records)
+    }
 
     override suspend fun evaluations() = api.evaluations()
 

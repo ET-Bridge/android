@@ -102,7 +102,11 @@ locally logged duty leaves.
 ## Privacy & security
 
 - **No ETBridge server.** The app talks directly to ETLab's official student API
-  (`api.students.etlab.app`). Your credentials and data never pass through anyone else.
+  (`api2.students.etlab.app`). Your credentials and data never pass through anyone else.
+- To keep working if ETLab moves its API again, the app occasionally downloads
+  `https://etbridge.nimd.me/etlab-endpoints.json`, a public file naming ETLab's current API host.
+  That request carries no token, username or other personal data, and the app only accepts
+  `etlab.app` hosts from it.
 - Your session token is encrypted with an AES-256 key held in the **Android Keystore**; cached ETLab
   data lives in the app's private storage so the app works offline.
 - App backups are disabled, so nothing is copied to cloud backups. **Signing out deletes** the

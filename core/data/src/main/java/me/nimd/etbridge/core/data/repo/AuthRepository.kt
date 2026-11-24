@@ -2,7 +2,9 @@ package me.nimd.etbridge.core.data.repo
 
 import kotlinx.coroutines.flow.StateFlow
 import me.nimd.etbridge.core.data.demo.DemoDataSource
+import me.nimd.etbridge.core.data.network.EtlabEndpointConfig
 import me.nimd.etbridge.core.data.network.EtlabApi
+import me.nimd.etbridge.core.data.network.EtlabEndpoints
 import me.nimd.etbridge.core.data.prefs.UserPreferencesRepository
 import me.nimd.etbridge.core.data.session.SessionStore
 import me.nimd.etbridge.core.model.AuthSession
@@ -19,6 +21,7 @@ class AuthRepository @Inject constructor(
     private val prefs: UserPreferencesRepository,
     private val etlab: EtlabRepository,
     private val dutyLeaves: DutyLeaveRepository,
+    private val endpointConfig: EtlabEndpointConfig,
 ) {
     val session: StateFlow<AuthSession?> = sessionStore.session
 
@@ -32,9 +35,25 @@ class AuthRepository @Inject constructor(
     fun isDemoCredentials(username: String, password: String) =
         username.trim().equals("demo", ignoreCase = true) && password.trim().equals("demo", ignoreCase = true)
 
-    suspend fun login(username: String, password: String, instituteId: String, instituteName: String?): AuthSession {
+    suspend fun login(
+        username: String,
+        password: String,
+        instituteId: String,
+        instituteName: String?,
+        instituteApiBaseUrl: String? = null,
+    ): AuthSession {
         if (isDemoCredentials(username, password)) return loginDemo()
-        val result = api.login(username, password, instituteId)
+        // Make sure we talk to ETLab's current host (remote config) or the college's own one.
+        endpointConfig.applyCached()
+        endpointConfig.refresh()
+        val apiOrigin = EtlabEndpoints.normalizeOrigin(instituteApiBaseUrl)
+        EtlabEndpoints.setInstituteOrigin(apiOrigin)
+        val result = try {
+            api.login(username, password, instituteId)
+        } catch (e: Exception) {
+            EtlabEndpoints.setInstituteOrigin(sessionStore.current?.apiOrigin)
+            throw e
+        }
         val session = AuthSession(
             token = result.token,
             instituteId = instituteId,
@@ -42,6 +61,7 @@ class AuthRepository @Inject constructor(
             username = username.trim(),
             studentName = result.name ?: username.trim(),
             studentPhoto = result.photo,
+            apiOrigin = apiOrigin,
         )
         // A different account may have used this device; never mix cached data.
         etlab.clear()

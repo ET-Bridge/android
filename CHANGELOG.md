@@ -3,6 +3,27 @@
 All notable changes to ETBridge for Android. Versions follow `versionName` in
 `app/build.gradle.kts`; `versionCode` increases with every release.
 
+## [1.1.0] — 2026-11-24
+
+### Fixed
+- **ETLab moved its API.** ETLab retired `api.students.etlab.app` (it now returns HTTP 503
+  "Service Suspended"); ETBridge now uses `api2.students.etlab.app`. Version 1.0.0 can no longer
+  sign in or sync.
+- **Attendance calendar showed the wrong subjects.** The calendar, subject class history and
+  duty-leave matching used ETLab's *scheduled* timetable, so "Minor" slots, lab blocks and
+  swapped hours showed the planned subject (and many marked hours as unmarked). They now use
+  ETLab's attendance records (`/attendancebyday`, what the official app shows), so every marked
+  hour shows the subject actually taught and its real status. Monthly totals now match ETLab.
+- History now covers the whole semester (five months instead of four).
+
+### Changed
+- Sessions stay signed in: ETLab tokens expire after 3 days, and ETBridge now adopts the
+  refreshed token ETLab sends with each response.
+- Clear message when ETLab itself is down instead of a generic HTTP error.
+- If ETLab moves its API again, ETBridge can follow without an app update: it reads the current
+  host from a small file on etbridge.nimd.me (no personal data is sent) and honours
+  per-college API hosts if ETLab publishes them. Only `etlab.app` hosts are ever accepted.
+
 ## [1.0.0] — 2026-11-16
 
 First release: a native Android version of the ETBridge web app.

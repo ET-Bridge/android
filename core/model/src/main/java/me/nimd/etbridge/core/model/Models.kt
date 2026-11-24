@@ -3,6 +3,11 @@ package me.nimd.etbridge.core.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonArray
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
+import kotlinx.serialization.json.contentOrNull
 
 /*
  * Ported from webapp/src/api/types.ts. These classes double as wire DTOs and domain models:
@@ -29,6 +34,8 @@ data class AuthSession(
     val username: String,
     val studentName: String? = null,
     val studentPhoto: String? = null,
+    /** Institute-specific ETLab API origin, when ETLab publishes one (see EtlabEndpoints). */
+    val apiOrigin: String? = null,
 ) {
     val isDemo: Boolean get() = token == DEMO_TOKEN
 }
@@ -509,3 +516,32 @@ data class AcademicAnalysis(
     @SerialName("courses_at_risk") val coursesAtRisk: List<CourseRisk> = emptyList(),
     val semesters: List<SemesterAnalysis> = emptyList(),
 )
+
+/**
+ * One marked hour from POST /attendancebyday ({ month, year }) → `days[date][]` — the data
+ * ETLab's own calendar renders. Unlike /timetablenew (the planned schedule) it names the
+ * subject actually taught and how the hour was marked.
+ */
+@Serializable
+data class AttendanceRecord(
+    val hour: LInt = 0,
+    val sub: LString = "",
+    @SerialName("subject_code") val subjectCode: LString = "",
+    @SerialName("subject_type") val subjectType: LStringN = null,
+    /** "Present" | "Absent" | "Duty Leave" | "On Duty" */
+    val status: LString = "",
+    @SerialName("counts_as_present") val countsAsPresent: JsonElement? = null,
+    @SerialName("attendance_type") val attendanceType: LStringN = null,
+    /** A comma-joined string here (timetablenew uses an array); either is accepted. */
+    @SerialName("covered_topics") val coveredTopicsRaw: JsonElement? = null,
+) {
+    val countsAsPresentOrNull: Boolean?
+        get() = (countsAsPresent as? JsonPrimitive)?.let { it.booleanOrNull ?: it.contentOrNull?.toBooleanStrictOrNull() }
+
+    val topics: List<String>
+        get() = when (val raw = coveredTopicsRaw) {
+            is JsonArray -> raw.mapNotNull { (it as? JsonPrimitive)?.contentOrNull?.trim()?.takeIf(String::isNotEmpty) }
+            is JsonPrimitive -> raw.contentOrNull.orEmpty().split(',').map { it.trim() }.filter { it.isNotEmpty() }
+            else -> emptyList()
+        }
+}

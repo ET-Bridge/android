@@ -34,3 +34,6 @@ output-metadata.json
 *.log
 .DS_Store
 Thumbs.db
+
+# Release APKs (attach to GitHub releases, do not commit)
+release/

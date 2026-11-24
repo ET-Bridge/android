@@ -18,10 +18,15 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.update
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
 import me.nimd.etbridge.core.model.AuthSession
 import me.nimd.etbridge.core.model.EtlabJson
+import me.nimd.etbridge.core.data.network.EtlabEndpoints
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -51,6 +56,7 @@ class SessionStore @Inject constructor(
             .getPrimitive(RegistryConfiguration.get(), Aead::class.java)
     }
 
+    private val persistMutex = Mutex()
     private val _session = MutableStateFlow<AuthSession?>(null)
     val session: StateFlow<AuthSession?> = _session.asStateFlow()
 
@@ -67,6 +73,7 @@ class SessionStore @Inject constructor(
         if (loaded) return@withContext _session.value
         val stored = context.sessionDataStore.data.first()[SESSION_KEY]
         val session = stored?.let { decrypt(it) }
+        EtlabEndpoints.setInstituteOrigin(session?.apiOrigin)
         _session.value = session
         loaded = true
         session
@@ -75,16 +82,47 @@ class SessionStore @Inject constructor(
     fun loadBlocking(): AuthSession? = if (loaded) _session.value else runBlocking { load() }
 
     suspend fun save(session: AuthSession) = withContext(Dispatchers.IO) {
-        val plain = EtlabJson.encodeToString(AuthSession.serializer(), session).toByteArray()
-        val cipher = Base64.encodeToString(aead.encrypt(plain, ASSOCIATED_DATA), Base64.NO_WRAP)
-        context.sessionDataStore.edit { it[SESSION_KEY] = cipher }
-        _session.value = session
+        persistMutex.withLock {
+            persist(session)
+            EtlabEndpoints.setInstituteOrigin(session.apiOrigin)
+            _session.value = session
+        }
         loaded = true
     }
 
+    private suspend fun persist(session: AuthSession) {
+        val plain = EtlabJson.encodeToString(AuthSession.serializer(), session).toByteArray()
+        val cipher = Base64.encodeToString(aead.encrypt(plain, ASSOCIATED_DATA), Base64.NO_WRAP)
+        context.sessionDataStore.edit { it[SESSION_KEY] = cipher }
+    }
+
+    /**
+     * Adopts a fresher token that ETLab sent in `X-Session-Token` (called from the OkHttp
+     * interceptor). The in-memory session updates immediately so the next request uses it;
+     * the encrypted copy is written in the background. Ignored if the session changed meanwhile.
+     */
+    fun rotateToken(expected: String, newToken: String) {
+        var updated: AuthSession? = null
+        _session.update { current ->
+            if (current == null || current.token != expected) current
+            else current.copy(token = newToken).also { updated = it }
+        }
+        updated?.let { s ->
+            scope.launch {
+                persistMutex.withLock {
+                    // Skip if the user signed out or the token rotated again in the meantime.
+                    if (_session.value == s) runCatching { persist(s) }
+                }
+            }
+        }
+    }
+
     suspend fun clear() = withContext(Dispatchers.IO) {
-        context.sessionDataStore.edit { it.remove(SESSION_KEY) }
-        _session.value = null
+        persistMutex.withLock {
+            _session.value = null
+            context.sessionDataStore.edit { it.remove(SESSION_KEY) }
+        }
+        EtlabEndpoints.setInstituteOrigin(null)
     }
 
     private fun decrypt(cipher: String): AuthSession? = runCatching {

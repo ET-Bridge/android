@@ -52,6 +52,19 @@ class UserPreferencesRepository @Inject constructor(
         val target = intPreferencesKey("attendance_target")
         val lastSync = longPreferencesKey("last_sync_millis")
         val lastInstitute = stringPreferencesKey("last_institute")
+        val remoteApiOrigin = stringPreferencesKey("remote_api_origin")
+        val remoteConfigChecked = longPreferencesKey("remote_config_checked_millis")
+    }
+
+    /** ETLab API origin from ETBridge's remote endpoint config, and when it was last checked. */
+    suspend fun remoteApiOrigin(): Pair<String?, Long?> =
+        context.prefsDataStore.data.first().let { it[Keys.remoteApiOrigin] to it[Keys.remoteConfigChecked] }
+
+    suspend fun setRemoteApiOrigin(origin: String?, checkedAt: Long) {
+        context.prefsDataStore.edit {
+            if (origin == null) it.remove(Keys.remoteApiOrigin) else it[Keys.remoteApiOrigin] = origin
+            it[Keys.remoteConfigChecked] = checkedAt
+        }
     }
 
     val preferences: Flow<AppPreferences> = context.prefsDataStore.data

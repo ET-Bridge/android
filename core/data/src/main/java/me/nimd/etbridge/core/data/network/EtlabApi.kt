@@ -27,6 +27,7 @@ import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.put
 import me.nimd.etbridge.core.model.AcademicAnalysis
 import me.nimd.etbridge.core.model.ActivityPointsData
+import me.nimd.etbridge.core.model.AttendanceRecord
 import me.nimd.etbridge.core.model.Course
 import me.nimd.etbridge.core.model.CourseDetails
 import me.nimd.etbridge.core.model.CourseRisk
@@ -47,9 +48,20 @@ import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
 
-class ApiException(val status: Int, message: String) : Exception(message) {
+open class ApiException(val status: Int, message: String) : Exception(message) {
     val isUnauthorized: Boolean get() = status == 401 || status == 403
 }
+
+/** ETLab itself is down (gateway errors, Render/Cloudflare "suspended" pages). Not our bug. */
+class EtlabUnavailableException(status: Int) : ApiException(
+    status,
+    "ETLab's servers aren't responding right now (HTTP $status). This is a problem on ETLab's side — " +
+        "your saved data is still shown. Please try again later.",
+)
+
+internal fun isOutage(status: Int, contentType: String?): Boolean =
+    status == 502 || status == 503 || status == 504 || status in 520..530 ||
+        (status >= 500 && contentType.orEmpty().contains("text/html"))
 
 data class LoginResult(val token: String, val name: String?, val photo: String?)
 
@@ -61,14 +73,20 @@ data class LoginResult(val token: String, val name: String?, val photo: String?)
 @Singleton
 class EtlabApi @Inject constructor(private val client: HttpClient) {
 
-    private val base = EtlabEndpoints.API_BASE
+    /** Resolved per call so a changed origin (institute / remote config) applies immediately. */
+    private val base: String get() = EtlabEndpoints.apiBase
 
     private suspend fun getJson(path: String, block: io.ktor.client.request.HttpRequestBuilder.() -> Unit = {}): JsonElement {
         val res = client.get("$base$path", block)
         return res.requireJson(path)
     }
 
+    private fun HttpResponse.throwIfOutage() {
+        if (isOutage(status.value, headers[HttpHeaders.ContentType])) throw EtlabUnavailableException(status.value)
+    }
+
     private suspend fun HttpResponse.requireJson(what: String): JsonElement {
+        throwIfOutage()
         if (!status.isSuccess()) throw ApiException(status.value, "Failed to load $what (${status.value})")
         val text = bodyAsText()
         return runCatching { EtlabJson.parseToJsonElement(text) }
@@ -100,6 +118,7 @@ class EtlabApi @Inject constructor(private val client: HttpClient) {
                 put("institute_id", instituteId)
             }.toString())
         }
+        res.throwIfOutage()
         val text = res.bodyAsText()
         val json = runCatching { EtlabJson.parseToJsonElement(text).jsonObject }.getOrNull()
         if (!res.status.isSuccess()) {
@@ -142,10 +161,28 @@ class EtlabApi @Inject constructor(private val client: HttpClient) {
         getJson("/attendancebysubject") { semId?.let { parameter("sem_id", it) } }
             .listOf(SubjectAttendance.serializer())
 
+    /** The *scheduled* timetable; see [attendanceByDay] for what was actually marked. */
     suspend fun monthTimetable(month: YearMonth): List<DayTimetable> {
         val raw = getJson("/timetablenew") { parameter("month", month.toString()) }
         val list = (raw as? JsonObject)?.get("timetable") ?: raw
         return list.listOf(DayTimetable.serializer())
+    }
+
+    /**
+     * POST /attendancebyday → `days: { "yyyy-MM-dd": [AttendanceRecord] }`, the source of
+     * ETLab's own attendance calendar: the subject actually taught each marked hour.
+     */
+    suspend fun attendanceByDay(month: YearMonth): Map<String, List<AttendanceRecord>> {
+        val res = client.post("$base/attendancebyday") {
+            contentType(ContentType.Application.Json)
+            setBody(buildJsonObject {
+                put("month", month.monthValue)
+                put("year", month.year)
+            }.toString())
+        }
+        val days = (res.requireJson("attendance by day") as? JsonObject)?.get("days") as? JsonObject
+            ?: return emptyMap()
+        return days.mapValues { (_, v) -> v.listOf(AttendanceRecord.serializer()) }
     }
 
     suspend fun teachers(): List<Teacher> = getJson("/teachers").listOf(Teacher.serializer()).map { t ->
@@ -238,6 +275,7 @@ class EtlabApi @Inject constructor(private val client: HttpClient) {
                 ),
             )
         }
+        res.throwIfOutage()
         if (!res.status.isSuccess()) throw ApiException(res.status.value, "Upload failed with server status ${res.status.value}")
     }
 
@@ -246,6 +284,7 @@ class EtlabApi @Inject constructor(private val client: HttpClient) {
             contentType(ContentType.Application.Json)
             setBody(buildJsonObject { put("assignment_id", assignmentId) }.toString())
         }
+        res.throwIfOutage()
         if (!res.status.isSuccess()) throw ApiException(res.status.value, "Delete submission failed with status ${res.status.value}")
     }
 }

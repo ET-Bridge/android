@@ -23,6 +23,8 @@ import me.nimd.etbridge.core.data.demo.DemoDataSource
 import me.nimd.etbridge.core.data.demo.EtlabDataSource
 import me.nimd.etbridge.core.data.demo.RemoteDataSource
 import me.nimd.etbridge.core.data.network.ApiException
+import me.nimd.etbridge.core.data.network.EtlabEndpointConfig
+import me.nimd.etbridge.core.data.network.EtlabUnavailableException
 import me.nimd.etbridge.core.data.prefs.UserPreferencesRepository
 import me.nimd.etbridge.core.data.session.SessionStore
 import me.nimd.etbridge.core.model.AcademicAnalysis
@@ -51,10 +53,13 @@ class Cached<T> internal constructor(val key: String, val serializer: KSerialize
 object EtlabData {
     val Profile = Cached("profile", StudentProfile.serializer())
     val Attendance = Cached("attendance", ListSerializer(SubjectAttendance.serializer()))
-    /** Current month's timetable (has live substitutions and attendance marks). */
-    val Timetable = Cached("timetable_month", ListSerializer(DayTimetable.serializer()))
-    /** Current month plus the three before it, newest first (semester-wide history). */
-    val SemesterTimetable = Cached("timetable_semester", ListSerializer(DayTimetable.serializer()))
+    /**
+     * Current month's timetable with ETLab's attendance records merged in (v2: actual subject
+     * per marked hour, see AttendanceMerge).
+     */
+    val Timetable = Cached("timetable_month_v2", ListSerializer(DayTimetable.serializer()))
+    /** Current month plus the four before it, newest first (whole-semester history). */
+    val SemesterTimetable = Cached("timetable_semester_v2", ListSerializer(DayTimetable.serializer()))
     val Evaluations = Cached("evaluations", EvaluationsData.serializer())
     val Teachers = Cached("teachers", ListSerializer(Teacher.serializer()))
     val Materials = Cached("materials", ListSerializer(StudyMaterial.serializer()))
@@ -99,6 +104,7 @@ class EtlabRepository @Inject constructor(
     private val demo: DemoDataSource,
     private val prefs: UserPreferencesRepository,
     private val dutyLeaveRepository: DutyLeaveRepository,
+    private val endpointConfig: EtlabEndpointConfig,
 ) {
     companion object {
         const val MAX_AGE_MS: Long = 4 * 60 * 60 * 1000L
@@ -154,13 +160,14 @@ class EtlabRepository @Inject constructor(
         }
     }
 
-    /** Fetches the current month and the three before it in parallel and merges by date. */
+    /** Fetches the current month and the four before it in parallel and merges by date. */
     private suspend fun refreshTimetables(force: Boolean): List<Outcome> = coroutineScope {
         if (!force && isFresh(EtlabData.SemesterTimetable.key) && isFresh(EtlabData.Timetable.key)) {
             return@coroutineScope emptyList()
         }
         val current = YearMonth.now()
-        val months = (0L until 4L).map { current.minusMonths(it) }
+        // KTU semesters span ~4.5 months, so five months covers the whole current semester.
+        val months = (0L until 5L).map { current.minusMonths(it) }
         val results = months.map { m -> async { runCatching { m to source.monthTimetable(m) } } }.awaitAll()
         val outcomes = mutableListOf<Outcome>()
 
@@ -196,6 +203,10 @@ class EtlabRepository @Inject constructor(
             _syncState.update { it.copy(isRefreshing = true) }
             try {
                 val src = source
+                if (src === remote) {
+                    endpointConfig.applyCached()
+                    endpointConfig.refresh()
+                }
                 val outcomes = coroutineScope {
                     val jobs = listOf(
                         async { listOf(refreshOne(EtlabData.Profile, force) { src.profile() }) },
@@ -224,11 +235,13 @@ class EtlabRepository @Inject constructor(
 
                 val unauthorized = failures.values.any { (it as? ApiException)?.isUnauthorized == true } && !coreOk
                 val offline = failures.isNotEmpty() && failures.values.all { it is IOException }
+                val etlabDown = failures.values.firstOrNull { it is EtlabUnavailableException }
                 _syncState.value = SyncState(
                     isRefreshing = false,
                     error = when {
                         unauthorized -> "Your ETLab session has expired. Please sign in again."
                         offline && !coreOk -> "You're offline. Showing saved data."
+                        etlabDown != null && !coreOk -> etlabDown.message
                         !coreOk && failures.isNotEmpty() -> failures.values.first().message ?: "Couldn't reach ETLab."
                         else -> null
                     },

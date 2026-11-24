@@ -71,7 +71,7 @@ class LoginViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 val inst = s.selected
-                auth.login(s.username, s.password, inst?.id ?: "demo", inst?.shortName ?: inst?.name)
+                auth.login(s.username, s.password, inst?.id ?: "demo", inst?.shortName ?: inst?.name, inst?.apiBaseUrl)
                 // AppViewModel observes the session and swaps to the main UI.
             } catch (e: ApiException) {
                 _state.update { it.copy(submitting = false, error = e.message) }

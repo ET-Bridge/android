@@ -92,8 +92,22 @@ It needs **Android 8.0 or newer**.
 
 ## Updating
 
-Download the newer APK from Releases and install it over the existing app — your login and data are
-kept. Every official release is signed with the same key, so Android accepts it as an update.
+From 1.2.0 on, ETBridge updates itself: when a new release is out it shows an **Update available**
+dialog (*What's new* lists the changes). Tap **Install** and it downloads the APK from GitHub
+Releases with a progress bar and hands it to Android's installer. You can also check from
+*Settings → Check for updates*.
+
+- The first time, Android asks you to allow ETBridge to **Install unknown apps**. After that each
+  update needs one confirmation, and on Android 12+ usually none.
+- Before installing, the app checks the download's SHA-256 and that it's signed with the same key
+  as the installed app. Android enforces the key check as well.
+- *Later* hides the prompt for a day and *Skip this version* hides it until the next release. If a
+  release says older versions no longer work (for example after an ETLab API change), the prompt
+  can't be dismissed.
+
+You can still update by hand: download the newer APK from Releases and install it over the
+existing app. Your login and data are kept. Every official release is signed with the same key, so
+Android accepts it as an update.
 
 If Android says the app *conflicts with an existing package*, the installed copy was signed with a
 different key (for example a build you made yourself). Uninstall it first; note that this deletes
@@ -107,6 +121,9 @@ locally logged duty leaves.
   `https://etbridge.nimd.me/etlab-endpoints.json`, a public file naming ETLab's current API host.
   That request carries no token, username or other personal data, and the app only accepts
   `etlab.app` hosts from it.
+- To check for updates, the app downloads `https://etbridge.nimd.me/android-update.json` (at most
+  twice a day) and, only if you tap *Install*, the APK from GitHub Releases. Neither request carries
+  any personal data.
 - Your session token is encrypted with an AES-256 key held in the **Android Keystore**; cached ETLab
   data lives in the app's private storage so the app works offline.
 - App backups are disabled, so nothing is copied to cloud backups. **Signing out deletes** the
@@ -170,10 +187,17 @@ backup: without the original key, no future release can install over existing co
 To publish a new version:
 
 1. Bump `versionCode` (must increase every release) and `versionName` in `app/build.gradle.kts`.
-2. Add the changes to `CHANGELOG.md`.
-3. `./gradlew test :app:assembleRelease`
-4. Create a GitHub release tagged `vX.Y.Z` and attach the APK renamed to `ETBridge-vX.Y.Z.apk`
-   together with its SHA-256 checksum.
+2. Add a `## [X.Y.Z]` section to `CHANGELOG.md`, run `./gradlew test`, and commit.
+3. `scripts/release.sh` builds the signed APK, tags `vX.Y.Z`, creates the GitHub release with
+   `ETBridge-vX.Y.Z.apk` and its SHA-256, downloads the uploaded asset to check its hash, and only then
+   writes `../webapp/public/android-update.json` (the in-app updater's manifest). Needs an
+   authenticated [`gh`](https://cli.github.com/). Add `--min-supported <versionCode>` to force older
+   versions to update.
+4. Review the generated `notes` in `android-update.json` (short lines shown under *What's new*),
+   then commit and push the webapp. Users are notified once Cloudflare Pages deploys it.
+
+Builds without `keystore.properties` (debug-key builds) have the self-updater turned off, because
+an update signed with the release key couldn't install over them anyway.
 
 ## Performance tooling
 

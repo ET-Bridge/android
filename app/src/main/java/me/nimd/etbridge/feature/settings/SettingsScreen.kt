@@ -20,6 +20,7 @@ import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Fingerprint
 import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Sync
+import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.TrackChanges
 import androidx.compose.material.icons.rounded.WarningAmber
 import androidx.compose.material3.AlertDialog
@@ -69,6 +70,9 @@ import me.nimd.etbridge.sync.SyncScheduler
 import me.nimd.etbridge.ui.EtScreen
 import me.nimd.etbridge.ui.LocalAppActions
 import me.nimd.etbridge.ui.LocalSnackbar
+import me.nimd.etbridge.ui.openUrl
+import me.nimd.etbridge.update.UpdateManager
+import me.nimd.etbridge.update.UpdateState
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -77,6 +81,7 @@ class SettingsViewModel @Inject constructor(
     private val prefs: UserPreferencesRepository,
     private val scheduler: SyncScheduler,
     sessionStore: SessionStore,
+    val updates: UpdateManager,
 ) : ViewModel() {
     val state = prefs.preferences.stateIn(viewModelScope, SharingStarted.Eagerly, AppPreferences())
     val session = sessionStore.session
@@ -103,6 +108,7 @@ private val LOCK_TIMEOUTS = listOf(0 to "Immediately", 1 to "1 min", 5 to "5 min
 fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
     val p by vm.state.collectAsStateWithLifecycle()
     val session by vm.session.collectAsStateWithLifecycle()
+    val update by vm.updates.state.collectAsStateWithLifecycle()
     val app = LocalAppActions.current
     val snackbar = LocalSnackbar.current
     val context = LocalContext.current
@@ -212,6 +218,37 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                     leadingContent = { Icon(Icons.AutoMirrored.Rounded.Logout, null, tint = MaterialTheme.colorScheme.error) },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
                     modifier = Modifier.padding(vertical = 4.dp).clickable { confirmLogout = true },
+                )
+            }
+        }
+        item("updates-h") { SectionHeader("App") }
+        item("updates") {
+            EtCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp)) {
+                val enabled = vm.updates.enabled
+                ListItem(
+                    headlineContent = { Text("Check for updates") },
+                    supportingContent = {
+                        Text(
+                            when {
+                                !enabled -> "This build can't update itself. Get the official APK from GitHub."
+                                else -> when (val u = update) {
+                                    UpdateState.Checking -> "Checking…"
+                                    UpdateState.UpToDate -> "You're on the latest version (${BuildConfig.VERSION_NAME})"
+                                    is UpdateState.Failed -> if (u.manifest == null) u.message else "Version ${u.manifest.versionName} is available"
+                                    is UpdateState.Downloading -> "Downloading version ${u.manifest.versionName}…"
+                                    is UpdateState.Installing -> "Installing version ${u.manifest.versionName}…"
+                                    is UpdateState.Available -> "Version ${u.manifest.versionName} is available"
+                                    is UpdateState.NeedsPermission -> "Version ${u.manifest.versionName} is available"
+                                    UpdateState.Idle -> "Version ${BuildConfig.VERSION_NAME}"
+                                }
+                            },
+                        )
+                    },
+                    leadingContent = { Icon(Icons.Rounded.SystemUpdate, null) },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.padding(vertical = 4.dp).clickable {
+                        if (enabled) vm.updates.checkNow() else context.openUrl(UpdateManager.RELEASES_URL)
+                    },
                 )
             }
         }

@@ -54,7 +54,33 @@ class UserPreferencesRepository @Inject constructor(
         val lastInstitute = stringPreferencesKey("last_institute")
         val remoteApiOrigin = stringPreferencesKey("remote_api_origin")
         val remoteConfigChecked = longPreferencesKey("remote_config_checked_millis")
+        val updateManifest = stringPreferencesKey("update_manifest_json")
+        val updateChecked = longPreferencesKey("update_checked_millis")
+        val updateSkipped = intPreferencesKey("update_skipped_version")
+        val updateSnoozedUntil = longPreferencesKey("update_snoozed_until_millis")
     }
+
+    /** Self-update state: last fetched android-update.json, when, and what the user dismissed. */
+    data class UpdatePrefs(
+        val manifestJson: String?,
+        val checkedAt: Long?,
+        val skippedVersionCode: Int?,
+        val snoozedUntil: Long?,
+    )
+
+    suspend fun updatePrefs(): UpdatePrefs = context.prefsDataStore.data.first().let {
+        UpdatePrefs(it[Keys.updateManifest], it[Keys.updateChecked], it[Keys.updateSkipped], it[Keys.updateSnoozedUntil])
+    }
+
+    suspend fun setUpdateManifest(json: String, checkedAt: Long) {
+        context.prefsDataStore.edit {
+            it[Keys.updateManifest] = json
+            it[Keys.updateChecked] = checkedAt
+        }
+    }
+
+    suspend fun skipUpdate(versionCode: Int) = set(Keys.updateSkipped, versionCode)
+    suspend fun snoozeUpdate(untilMillis: Long) = set(Keys.updateSnoozedUntil, untilMillis)
 
     /** ETLab API origin from ETBridge's remote endpoint config, and when it was last checked. */
     suspend fun remoteApiOrigin(): Pair<String?, Long?> =

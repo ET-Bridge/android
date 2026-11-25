@@ -17,9 +17,11 @@ android {
         applicationId = "me.nimd.etbridge"
         minSdk = 26
         targetSdk = 36
-        versionCode = 2
-        versionName = "1.1.0"
+        versionCode = 3
+        versionName = "1.2.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+        // In-app updates from GitHub releases; only release builds signed with the release key.
+        buildConfigField("boolean", "SELF_UPDATE", "false")
     }
 
     // Release signing comes from keystore.properties (git-ignored; see keystore.properties.example).
@@ -43,6 +45,7 @@ android {
             isShrinkResources = true
             proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
             signingConfig = releaseSigning
+            buildConfigField("boolean", "SELF_UPDATE", keystoreFile.exists().toString())
         }
     }
 

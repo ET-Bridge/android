@@ -18,6 +18,10 @@ object Notifications {
     const val CHANNEL_ATTENDANCE = "attendance"
     const val CHANNEL_UPDATES = "updates"
     const val CHANNEL_CLASSES = "classes"
+    const val CHANNEL_APP_UPDATES = "app_updates"
+
+    /** Fixed id for the "ETBridge updated" notification. */
+    const val ID_APP_UPDATED = 0x0E7B_0001
 
     /** Deep-link extra read by MainActivity to open a specific tab. */
     const val EXTRA_DESTINATION = "etbridge.destination"
@@ -33,6 +37,8 @@ object Notifications {
                     .apply { description = "New notices, circulars and evaluation marks" },
                 NotificationChannel(CHANNEL_CLASSES, "Class reminders", NotificationManager.IMPORTANCE_DEFAULT)
                     .apply { description = "A heads-up a few minutes before each class" },
+                NotificationChannel(CHANNEL_APP_UPDATES, "App updates", NotificationManager.IMPORTANCE_LOW)
+                    .apply { description = "When ETBridge has finished updating itself" },
             ),
         )
     }

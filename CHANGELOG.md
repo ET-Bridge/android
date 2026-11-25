@@ -3,6 +3,15 @@
 All notable changes to ETBridge for Android. Versions follow `versionName` in
 `app/build.gradle.kts`; `versionCode` increases with every release.
 
+## [1.2.0] — 2026-11-25
+
+### Added
+- **In-app updates.** ETBridge checks for new releases in the background (at most twice a day, never
+  delaying start-up) and offers to update: *Install* downloads the APK from GitHub Releases with a
+  progress bar, verifies its checksum and signing key, and opens Android's installer. *What's new*
+  shows the release notes. Also in *Settings → Check for updates*. Releases can mark older versions
+  unsupported, which makes the update prompt mandatory.
+
 ## [1.1.0] — 2026-11-24
 
 ### Fixed

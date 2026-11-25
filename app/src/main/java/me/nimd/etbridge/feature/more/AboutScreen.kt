@@ -26,6 +26,10 @@ private val SECTIONS = listOf(
     "Duty leaves" to
         "Duty leaves you log are counted only in projected figures and clearly marked. Once ETLab records them " +
         "officially, ETBridge reconciles them automatically.",
+    "Updates" to
+        "ETBridge checks https://etbridge.nimd.me/android-update.json for new versions, at most twice a day, and " +
+        "downloads updates only from GitHub Releases when you tap Install. No personal data is sent. Each " +
+        "download's checksum and signing key are verified before Android installs it.",
     "Feedback" to
         "Feedback you send goes through Web3Forms to the developer, together with your institute code and username so " +
         "issues can be reproduced.",

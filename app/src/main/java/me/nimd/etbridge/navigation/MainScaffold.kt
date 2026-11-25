@@ -188,21 +188,28 @@ private fun NavHostController.currentTab(): TopLevel {
     return TopLevel.Dashboard
 }
 
+/**
+ * Content tabs come back where you left them (e.g. a subject's detail page). More is a menu hub,
+ * so it always reopens at the menu instead of the last screen opened from it (Settings, About…).
+ */
+private val TopLevel.remembersStack: Boolean get() = this != TopLevel.More
+
 private fun NavHostController.navigateTopLevel(dest: TopLevel) {
     val current = currentTab()
     when {
         // Home is the start destination: pop back to it, keeping the tab we leave restorable.
         dest == TopLevel.Dashboard -> {
-            if (!popBackStack(DashboardRoute, inclusive = false, saveState = current != TopLevel.Dashboard)) {
+            val save = current != TopLevel.Dashboard && current.remembersStack
+            if (!popBackStack(DashboardRoute, inclusive = false, saveState = save)) {
                 navigate(DashboardRoute) { launchSingleTop = true }
             }
         }
         // Re-selecting the current tab returns to its root screen.
         dest == current -> popBackStack(dest.route, inclusive = false)
         else -> navigate(dest.route) {
-            popUpTo(graph.findStartDestination().id) { saveState = true }
+            popUpTo(graph.findStartDestination().id) { saveState = current.remembersStack }
             launchSingleTop = true
-            restoreState = true
+            restoreState = dest.remembersStack
         }
     }
 }

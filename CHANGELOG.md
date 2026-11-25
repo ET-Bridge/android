@@ -3,12 +3,14 @@
 All notable changes to ETBridge for Android. Versions follow `versionName` in
 `app/build.gradle.kts`; `versionCode` increases with every release.
 
-## [Unreleased]
+## [1.2.1] — 2026-11-25
 
 ### Fixed
 - **More tab reopened on the last screen.** After opening Settings (or About, Campus…) from More and
   switching tabs, tapping More showed that screen again instead of the More menu. More now always
   opens on its menu; Attendance, Timetable and Academics still come back where you left them.
+- **About screen** named ETLab's retired API host; it now shows `api2.students.etlab.app`, and
+  "Source code on GitHub" opens the Android app's repository.
 
 ## [1.2.0] — 2026-11-25
 

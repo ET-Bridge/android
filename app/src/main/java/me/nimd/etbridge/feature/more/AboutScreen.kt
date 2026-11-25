@@ -15,7 +15,7 @@ import me.nimd.etbridge.ui.openUrl
 
 private val SECTIONS = listOf(
     "How it works" to
-        "ETBridge talks directly to ETLab's official student API (api.students.etlab.app). There is no ETBridge server: " +
+        "ETBridge talks directly to ETLab's official student API (api2.students.etlab.app). There is no ETBridge server: " +
         "your requests go from this phone straight to ETLab.",
     "Your data" to
         "Your session token is encrypted with a key held in the Android Keystore. Attendance, timetable and other data are " +
@@ -54,7 +54,7 @@ fun AboutScreen() {
         item("links") {
             EtCard {
                 TextButton(onClick = { context.openUrl("https://etbridge.nimd.me/docs") }) { Text("Technical documentation") }
-                TextButton(onClick = { context.openUrl("https://github.com/nimdme/et-bridge") }) { Text("Source code on GitHub") }
+                TextButton(onClick = { context.openUrl("https://github.com/ET-Bridge/android") }) { Text("Source code on GitHub") }
             }
         }
     }

@@ -32,11 +32,11 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,14 +50,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.SubcomposeAsyncImage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.launch
+import me.nimd.etbridge.BuildConfig
 import me.nimd.etbridge.core.data.repo.FeedbackCategory
 import me.nimd.etbridge.core.data.repo.FeedbackRepository
 import me.nimd.etbridge.core.designsystem.EtCard
+import me.nimd.etbridge.core.designsystem.IconBubble
 import me.nimd.etbridge.core.designsystem.InitialsAvatar
 import me.nimd.etbridge.core.designsystem.Pill
 import me.nimd.etbridge.core.designsystem.Tone
 import me.nimd.etbridge.core.model.formatSemester
-import me.nimd.etbridge.navigation.AboutRoute
+import me.nimd.etbridge.navigation.AppInfoRoute
 import me.nimd.etbridge.navigation.AnalysisRoute
 import me.nimd.etbridge.navigation.CampusRoute
 import me.nimd.etbridge.navigation.CoursesRoute
@@ -89,7 +91,7 @@ fun MoreScreen(vm: StudentViewModel = hiltViewModel()) {
         Entry("Duty leaves", "Log, track and reconcile", Icons.Rounded.EventAvailable, DutyLeavesRoute),
         Entry("Notices & circulars", "${profile?.notices?.size ?: 0} notices · ${profile?.circulars?.size ?: 0} circulars", Icons.Rounded.Campaign, NoticesRoute),
         Entry("Settings", "Theme, app lock, notifications", Icons.Rounded.Settings, SettingsRoute),
-        Entry("About & privacy", "How ETBridge works", Icons.Rounded.Info, AboutRoute),
+        Entry("App info", "Version, updates, privacy & about", Icons.Rounded.Info, AppInfoRoute),
     )
 
     EtScreen("More") {
@@ -119,12 +121,12 @@ fun MoreScreen(vm: StudentViewModel = hiltViewModel()) {
                 }
             }
         }
-        entries.forEach { e ->
+        entries.forEachIndexed { i, e ->
             item(e.title) {
                 EtCard(onClick = { app.navigate(e.route) }) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(e.icon, null, tint = MaterialTheme.colorScheme.primary)
-                        Spacer(Modifier.width(16.dp))
+                        IconBubble(e.icon, index = i)
+                        Spacer(Modifier.width(14.dp))
                         Column(Modifier.weight(1f)) {
                             Text(e.title, style = MaterialTheme.typography.titleSmall)
                             Text(e.subtitle, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -147,14 +149,34 @@ fun MoreScreen(vm: StudentViewModel = hiltViewModel()) {
             }
         }
     }
-    if (feedback) FeedbackSheet(defaultName = profile?.name.orEmpty()) { feedback = false }
+    val snackbar = LocalSnackbar.current
+    val scope = rememberCoroutineScope()
+    if (feedback) {
+        FeedbackSheet(
+            defaultName = profile?.name.orEmpty(),
+            onSent = { scope.launch { snackbar.showSnackbar("Thanks! Feedback sent.") } },
+            onDismiss = { feedback = false },
+        )
+    }
 }
+
+/** App, OS and device details attached to feedback so bugs can be reproduced. */
+fun feedbackDiagnostics(): Map<String, String> = linkedMapOf(
+    "App version" to "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})${if (BuildConfig.DEBUG) " debug" else ""}",
+    "Android" to "${android.os.Build.VERSION.RELEASE} (SDK ${android.os.Build.VERSION.SDK_INT})",
+    "Device" to "${android.os.Build.MANUFACTURER} ${android.os.Build.MODEL}",
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun FeedbackSheet(defaultName: String, vm: FeedbackViewModel = hiltViewModel(), onDismiss: () -> Unit) {
+fun FeedbackSheet(
+    defaultName: String,
+    vm: FeedbackViewModel = hiltViewModel(),
+    /** Runs on the caller's scope, so the confirmation survives this sheet leaving composition. */
+    onSent: () -> Unit,
+    onDismiss: () -> Unit,
+) {
     val scope = rememberCoroutineScope()
-    val snackbar = LocalSnackbar.current
     var category by rememberSaveable { mutableStateOf(FeedbackCategory.MissingFeature) }
     var name by rememberSaveable { mutableStateOf(defaultName) }
     var email by rememberSaveable { mutableStateOf("") }
@@ -176,15 +198,21 @@ fun FeedbackSheet(defaultName: String, vm: FeedbackViewModel = hiltViewModel(), 
             OutlinedTextField(name, { name = it }, Modifier.fillMaxWidth(), label = { Text("Name") }, singleLine = true)
             OutlinedTextField(email, { email = it }, Modifier.fillMaxWidth(), label = { Text("Email (for a reply)") }, singleLine = true)
             OutlinedTextField(message, { message = it }, Modifier.fillMaxWidth().height(140.dp), label = { Text("What happened?") })
+            val diagnostics = remember { feedbackDiagnostics() }
+            Text(
+                "Includes app version and device (${diagnostics["Device"]}) to help fix bugs.",
+                style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
             error?.let { Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodySmall) }
             Button(
                 onClick = {
                     sending = true; error = null
                     scope.launch {
-                        vm.repo.submit(category, name, email, message)
-                            .onSuccess { onDismiss(); snackbar.showSnackbar("Thanks! Feedback sent.") }
-                            .onFailure { error = it.message }
+                        val result = vm.repo.submit(category, name, email, message, diagnostics)
                         sending = false
+                        result
+                            .onSuccess { onSent(); onDismiss() }
+                            .onFailure { error = it.message ?: "Couldn't send feedback. Please try again." }
                     }
                 },
                 enabled = !sending && message.isNotBlank(),

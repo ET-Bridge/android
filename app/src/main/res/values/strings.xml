@@ -2,7 +2,7 @@
 <resources>
     <string name="app_name">ETBridge</string>
     <string name="widget_next_class_label">Next class</string>
-    <string name="widget_next_class_description">Your ongoing or next lecture</string>
+    <string name="widget_next_class_description">Your class now or next, with today\'s hours at a glance</string>
     <string name="widget_attendance_label">Attendance</string>
-    <string name="widget_attendance_description">Overall attendance and bunk margin</string>
+    <string name="widget_attendance_description">Attendance ring, bunk margin and your lowest subjects</string>
 </resources>

@@ -20,6 +20,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.material3.TextButton
+import androidx.compose.material.icons.rounded.Tune
+import me.nimd.etbridge.core.designsystem.IconBubble
+import me.nimd.etbridge.navigation.HomeLayoutRoute
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
@@ -40,10 +45,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,7 +65,6 @@ import me.nimd.etbridge.core.designsystem.EtTheme
 import me.nimd.etbridge.core.designsystem.InitialsAvatar
 import me.nimd.etbridge.core.designsystem.NumberStyle
 import me.nimd.etbridge.core.designsystem.Pill
-import me.nimd.etbridge.core.designsystem.SectionHeader
 import me.nimd.etbridge.core.designsystem.SkeletonBlock
 import me.nimd.etbridge.core.designsystem.StatusBanner
 import me.nimd.etbridge.core.designsystem.Tone
@@ -68,32 +72,28 @@ import me.nimd.etbridge.core.domain.Schedule
 import me.nimd.etbridge.core.domain.ScheduleFocus
 import me.nimd.etbridge.core.domain.isSubstitutionPeriod
 import me.nimd.etbridge.core.model.DateStyle
-import me.nimd.etbridge.core.model.daysRemaining
 import me.nimd.etbridge.core.model.formatIndianDate
 import me.nimd.etbridge.core.model.formatPercent
 import me.nimd.etbridge.core.model.formatRelativeTime
 import me.nimd.etbridge.navigation.AcademicsRoute
 import me.nimd.etbridge.navigation.AnalysisRoute
-import me.nimd.etbridge.navigation.AttendanceRoute
 import me.nimd.etbridge.navigation.CampusRoute
 import me.nimd.etbridge.navigation.CoursesRoute
 import me.nimd.etbridge.navigation.NoticesRoute
 import me.nimd.etbridge.navigation.SettingsRoute
-import me.nimd.etbridge.navigation.SubjectRoute
-import me.nimd.etbridge.navigation.TimetableRoute
 import me.nimd.etbridge.ui.HourChip
 import me.nimd.etbridge.ui.LocalAppActions
 import me.nimd.etbridge.ui.LogDutyLeaveSheet
 import me.nimd.etbridge.ui.StudentSnapshot
 import me.nimd.etbridge.ui.StudentViewModel
-import me.nimd.etbridge.ui.SubjectCard
 import java.time.Duration
 import java.time.LocalDateTime
 import me.nimd.etbridge.ui.keyedUniquely
 
 @Composable
-fun DashboardScreen(vm: StudentViewModel = hiltViewModel()) {
+fun DashboardScreen(vm: StudentViewModel = hiltViewModel(), layout: HomeLayoutViewModel = hiltViewModel()) {
     val snap by vm.snapshot.collectAsStateWithLifecycle()
+    val sections by layout.sections.collectAsStateWithLifecycle()
     val now by vm.now.collectAsStateWithLifecycle()
     val app = LocalAppActions.current
     var logging by rememberSaveable { mutableStateOf(false) }
@@ -132,108 +132,13 @@ fun DashboardScreen(vm: StudentViewModel = hiltViewModel()) {
                     return@LazyColumn
                 }
 
-                val belowTarget = snap.subjects.filter { !it.projection.isProjectedSafe }
-                if (belowTarget.isNotEmpty()) {
-                    item("risk") {
-                        RiskBanner(belowTarget.size) { app.navigate(AttendanceRoute) }
-                    }
-                }
-                item("live") { LiveClassCard(focus, now) { app.navigate(TimetableRoute) } }
-                item("overall") { OverallCard(snap, onOpen = { app.navigate(AttendanceRoute) }, onLog = { logging = true }) }
-
-                val deadlines = snap.evaluations?.assignments.orEmpty()
-                    .filter { it.isOpen && !daysRemaining(it.lastDate).isOverdue }
-                    .sortedBy { it.lastDate }
-                val today = now.toLocalDate().toString()
-                val upcomingExams = snap.evaluations?.seriesExams.orEmpty()
-                    .filter { !it.isPublished && it.date >= today }
-                    .sortedWith(compareBy({ it.date }, { it.period }))
-                if (upcomingExams.isNotEmpty()) {
-                    item("exams-h") {
-                        SectionHeader("Upcoming exams", subtitle = "${upcomingExams.size} scheduled", action = "All", onAction = { app.navigate(AcademicsRoute) })
-                    }
-                    item("exams") {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            items(upcomingExams.take(8).keyedUniquely { it.id }, key = { it.first }) { (_, e) ->
-                                val left = daysRemaining(e.date)
-                                EtCard(Modifier.width(220.dp), onClick = { app.navigate(AcademicsRoute) }) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(e.subjectCode, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-                                        Pill(
-                                            when (left.text) { "Due today" -> "Today"; "1 day left" -> "Tomorrow"; else -> left.text.replace("left", "away") },
-                                            tone = if (left.isUrgent) Tone.Warning else Tone.Neutral,
-                                        )
-                                    }
-                                    Spacer(Modifier.height(6.dp))
-                                    Text(e.title, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                    Text(e.subjectName ?: e.subject, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                    Text(
-                                        listOfNotNull(formatIndianDate(e.date, DateStyle.DayShort), e.period?.takeIf { it.isNotBlank() }?.let { "H$it" }).joinToString(" · "),
-                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-                if (deadlines.isNotEmpty()) {
-                    item("deadlines-h") {
-                        SectionHeader("Upcoming deadlines", action = "All", onAction = { app.navigate(AcademicsRoute) })
-                    }
-                    item("deadlines") {
-                        LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            items(deadlines.take(6).keyedUniquely { it.id }, key = { it.first }) { (_, a) ->
-                                val left = daysRemaining(a.lastDate)
-                                EtCard(Modifier.width(240.dp), onClick = { app.navigate(AcademicsRoute) }) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Text(a.subjectCode, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.primary, modifier = Modifier.weight(1f))
-                                        Pill(left.text, tone = if (left.isUrgent) Tone.Danger else Tone.Neutral)
-                                    }
-                                    Spacer(Modifier.height(6.dp))
-                                    Text(a.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                    Text(
-                                        "Due ${formatIndianDate(a.lastDate, DateStyle.Short)}",
-                                        style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                item("quick") { QuickLinks(app.navigate) }
-
-                val attention = snap.subjects.sortedBy { it.projection.projectedPercentage }.take(3)
-                if (attention.isNotEmpty()) {
-                    item("attention-h") {
-                        SectionHeader("Needs attention", subtitle = "Your lowest subjects", action = "All subjects", onAction = { app.navigate(AttendanceRoute) })
-                    }
-                    attention.forEach { row ->
-                        item("att-${row.subject.stableKey}") {
-                            SubjectCard(row, Modifier.animateItem()) { app.navigate(SubjectRoute(row.subject.stableKey)) }
-                        }
-                    }
-                }
-
-                val notices = snap.profile?.notices.orEmpty().take(2)
-                if (notices.isNotEmpty()) {
-                    item("notices-h") { SectionHeader("Recent notices", action = "All", onAction = { app.navigate(NoticesRoute) }) }
-                    notices.keyedUniquely { "notice-${it.id}" }.forEach { (k, n) ->
-                        item(k) {
-                            EtCard(onClick = { app.navigate(NoticesRoute) }) {
-                                Text(n.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
-                                if (!n.content.isNullOrBlank()) {
-                                    Text(
-                                        n.content!!, style = MaterialTheme.typography.bodySmall, maxLines = 2, overflow = TextOverflow.Ellipsis,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    )
-                                }
-                                Text(
-                                    listOfNotNull(formatIndianDate(n.date, DateStyle.Short), n.postedBy).joinToString(" · "),
-                                    style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.padding(top = 6.dp),
-                                )
-                            }
+                val list = sections ?: return@LazyColumn
+                val ctx = HomeContext(snap, focus, now, app.navigate) { logging = true }
+                list.forEach { section -> with(ctx) { section(section) } }
+                item("customize") {
+                    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                        TextButton(onClick = { app.navigate(HomeLayoutRoute) }) {
+                            Icon(Icons.Rounded.Tune, null, Modifier.size(18.dp)); Spacer(Modifier.width(6.dp)); Text("Customize Home")
                         }
                     }
                 }
@@ -294,7 +199,7 @@ private fun Header(snap: StudentSnapshot, now: LocalDateTime, onAvatar: () -> Un
 }
 
 @Composable
-private fun RiskBanner(count: Int, onClick: () -> Unit) {
+internal fun RiskBanner(count: Int, onClick: () -> Unit) {
     val s = EtTheme.status
     Row(
         Modifier
@@ -316,9 +221,9 @@ private fun RiskBanner(count: Int, onClick: () -> Unit) {
 }
 
 @Composable
-private fun LiveClassCard(focus: ScheduleFocus, now: LocalDateTime, onOpen: () -> Unit) {
+internal fun LiveClassCard(focus: ScheduleFocus, now: LocalDateTime, onOpen: () -> Unit) {
     val period = focus.activePeriod ?: focus.nextPeriod
-    EtCard(onClick = onOpen, color = MaterialTheme.colorScheme.surfaceContainerHigh) {
+    EtCard(onClick = onOpen, color = MaterialTheme.colorScheme.surfaceContainerHigh, brush = EtTheme.heroBrush) {
         val label = when {
             focus.activePeriod != null -> "Happening now"
             focus.isTomorrow -> "Tomorrow · ${Schedule.dayName(focus.date)}"
@@ -401,10 +306,10 @@ private fun LiveClassCard(focus: ScheduleFocus, now: LocalDateTime, onOpen: () -
 }
 
 @Composable
-private fun OverallCard(snap: StudentSnapshot, onOpen: () -> Unit, onLog: () -> Unit) {
+internal fun OverallCard(snap: StudentSnapshot, onOpen: () -> Unit, onLog: () -> Unit) {
     val o = snap.overall
     val hasPending = o.pendingDlHours > 0
-    EtCard(onClick = onOpen) {
+    EtCard(onClick = onOpen, brush = EtTheme.heroBrush) {
         Row(verticalAlignment = Alignment.CenterVertically) {
             AttendanceRing(
                 percentage = o.percentage,
@@ -447,7 +352,7 @@ private fun OverallCard(snap: StudentSnapshot, onOpen: () -> Unit, onLog: () -> 
 }
 
 @Composable
-private fun QuickLinks(navigate: (Any) -> Unit) {
+internal fun QuickLinks(navigate: (Any) -> Unit) {
     data class Link(val label: String, val icon: androidx.compose.ui.graphics.vector.ImageVector, val route: Any)
     val links = listOf(
         Link("Courses", Icons.AutoMirrored.Rounded.MenuBook, CoursesRoute),
@@ -457,12 +362,9 @@ private fun QuickLinks(navigate: (Any) -> Unit) {
         Link("Marks", Icons.AutoMirrored.Rounded.Assignment, AcademicsRoute),
     )
     LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-        items(links, key = { it.label }) { l ->
+        itemsIndexed(links, key = { _, l -> l.label }) { i, l ->
             EtCard(Modifier.widthIn(min = 96.dp), onClick = { navigate(l.route) }, contentPadding = androidx.compose.foundation.layout.PaddingValues(12.dp)) {
-                Box(
-                    Modifier.size(36.dp).clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)),
-                    contentAlignment = Alignment.Center,
-                ) { Icon(l.icon, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp)) }
+                IconBubble(l.icon, index = i, size = 36.dp)
                 Spacer(Modifier.height(8.dp))
                 Text(l.label, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.SemiBold, maxLines = 1, softWrap = false)
             }

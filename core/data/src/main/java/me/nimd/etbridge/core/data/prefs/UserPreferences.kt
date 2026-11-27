@@ -20,9 +20,12 @@ private val Context.prefsDataStore by preferencesDataStore(name = "etbridge_pref
 
 enum class ThemeMode { System, Light, Dark }
 
+/** Colour palette: ETBridge blue, the cheerful Vibrant set, or Material You (wallpaper, Android 12+). */
+enum class ColorPalette { Classic, Vibrant, Dynamic }
+
 data class AppPreferences(
     val themeMode: ThemeMode = ThemeMode.System,
-    val dynamicColor: Boolean = true,
+    val palette: ColorPalette = ColorPalette.Dynamic,
     val biometricLock: Boolean = false,
     /** Re-lock after the app has been in the background this many minutes (0 = immediately). */
     val lockTimeoutMinutes: Int = 1,
@@ -34,7 +37,12 @@ data class AppPreferences(
     val attendanceTarget: Int = 75,
     val lastSyncMillis: Long? = null,
     val lastSelectedInstituteId: String? = null,
-)
+    /** Ordered ids of the Home cards the user turned on; null = app default. */
+    val homeSections: List<String>? = null,
+) {
+    val dynamicColor: Boolean get() = palette == ColorPalette.Dynamic
+    val vibrant: Boolean get() = palette == ColorPalette.Vibrant
+}
 
 @Singleton
 class UserPreferencesRepository @Inject constructor(
@@ -43,6 +51,8 @@ class UserPreferencesRepository @Inject constructor(
     private object Keys {
         val theme = stringPreferencesKey("theme_mode")
         val dynamic = booleanPreferencesKey("dynamic_color")
+        val palette = stringPreferencesKey("color_palette")
+        val homeSections = stringPreferencesKey("home_sections")
         val biometric = booleanPreferencesKey("biometric_lock")
         val lockTimeout = intPreferencesKey("lock_timeout_minutes")
         val bgSync = booleanPreferencesKey("background_sync")
@@ -101,7 +111,10 @@ class UserPreferencesRepository @Inject constructor(
 
     private fun Preferences.toAppPreferences() = AppPreferences(
         themeMode = this[Keys.theme]?.let { runCatching { ThemeMode.valueOf(it) }.getOrNull() } ?: ThemeMode.System,
-        dynamicColor = this[Keys.dynamic] ?: true,
+        palette = this[Keys.palette]?.let { runCatching { ColorPalette.valueOf(it) }.getOrNull() }
+            // Before 1.3.0 there was only the Material You switch.
+            ?: if (this[Keys.dynamic] == false) ColorPalette.Classic else ColorPalette.Dynamic,
+        homeSections = this[Keys.homeSections]?.split(',')?.map(String::trim)?.filter(String::isNotEmpty),
         biometricLock = this[Keys.biometric] ?: false,
         lockTimeoutMinutes = this[Keys.lockTimeout] ?: 1,
         backgroundSync = this[Keys.bgSync] ?: true,
@@ -118,7 +131,11 @@ class UserPreferencesRepository @Inject constructor(
     }
 
     suspend fun setThemeMode(mode: ThemeMode) = set(Keys.theme, mode.name)
-    suspend fun setDynamicColor(enabled: Boolean) = set(Keys.dynamic, enabled)
+    suspend fun setPalette(palette: ColorPalette) = set(Keys.palette, palette.name)
+    suspend fun setHomeSections(ids: List<String>) = set(Keys.homeSections, ids.joinToString(","))
+    suspend fun resetHomeSections() {
+        context.prefsDataStore.edit { it.remove(Keys.homeSections) }
+    }
     suspend fun setBiometricLock(enabled: Boolean) = set(Keys.biometric, enabled)
     suspend fun setLockTimeout(minutes: Int) = set(Keys.lockTimeout, minutes)
     suspend fun setBackgroundSync(enabled: Boolean) = set(Keys.bgSync, enabled)

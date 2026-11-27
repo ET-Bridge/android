@@ -29,6 +29,8 @@ import kotlinx.serialization.Serializable
 @Serializable data object AnalysisRoute
 @Serializable data object SettingsRoute
 @Serializable data object AboutRoute
+@Serializable data object AppInfoRoute
+@Serializable data object HomeLayoutRoute
 
 enum class TopLevel(
     val route: Any,

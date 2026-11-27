@@ -31,8 +31,8 @@ private val SECTIONS = listOf(
         "downloads updates only from GitHub Releases when you tap Install. No personal data is sent. Each " +
         "download's checksum and signing key are verified before Android installs it.",
     "Feedback" to
-        "Feedback you send goes through Web3Forms to the developer, together with your institute code and username so " +
-        "issues can be reproduced.",
+        "Feedback you send goes through Web3Forms to the developer, together with your institute code, username, the " +
+        "app version and your phone's Android version and model, so issues can be reproduced.",
     "Disclaimer" to
         "ETBridge is an independent, open-source community project. It is not affiliated with, endorsed by or connected " +
         "to ETLab or Etuwa Concepts.",

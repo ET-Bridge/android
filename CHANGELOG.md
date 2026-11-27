@@ -3,6 +3,27 @@
 All notable changes to ETBridge for Android. Versions follow `versionName` in
 `app/build.gradle.kts`; `versionCode` increases with every release.
 
+## [1.3.0] — 2026-11-27
+
+### Added
+- **Customize Home** (Settings → Home screen, or the button at the bottom of Home): choose which cards
+  appear and in what order, from 16 cards including new ones: today's timetable, latest marks,
+  CGPA & SGPA, duty leaves, new study materials, fee dues, activity points and open surveys.
+  Reset brings back the original layout (with Undo).
+- **Assignment deadlines on Home** now include overdue work (up to 30 days late, marked in red) and
+  homework/tutorials, and show "All caught up" when nothing is open.
+- **Vibrant palette**: a brighter violet, pink and teal look with colourful icons and gradient cards.
+  Settings → Appearance now offers Classic, Vibrant and Material You.
+- **App info** in More: version, update check and release notes, privacy policy, how ETBridge works,
+  documentation, source code, release history and feedback, all in one place.
+- **Redesigned widgets**: an attendance ring with bunk margin and your lowest subjects, and a next-class
+  card with a status badge, times, teacher and today's hours. Both adapt to their size and follow the
+  app's palette; tapping opens the matching tab.
+
+### Fixed
+- **Sending feedback no longer shows a false error.** Web3Forms often replies with an HTML page;
+  ETBridge now recognises that as success. Feedback also includes the app version and device model.
+
 ## [1.2.2] — 2026-11-27
 
 ### Fixed

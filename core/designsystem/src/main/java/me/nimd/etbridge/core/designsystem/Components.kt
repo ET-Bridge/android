@@ -249,6 +249,8 @@ fun EtCard(
     onClick: (() -> Unit)? = null,
     contentPadding: PaddingValues = PaddingValues(16.dp),
     color: Color = MaterialTheme.colorScheme.surfaceContainer,
+    /** Optional background gradient drawn over [color] (e.g. [EtTheme.heroBrush]). */
+    brush: Brush? = null,
     content: @Composable ColumnScope.() -> Unit,
 ) {
     val interaction = remember { MutableInteractionSource() }
@@ -266,6 +268,7 @@ fun EtCard(
     ) {
         Column(
             Modifier
+                .then(if (brush != null) Modifier.background(brush) else Modifier)
                 .then(if (onClick != null) Modifier.clickable(interaction, androidx.compose.material3.ripple(), onClick = onClick) else Modifier)
                 .padding(contentPadding),
             content = content,
@@ -281,7 +284,15 @@ fun SectionHeader(
     action: String? = null,
     onAction: (() -> Unit)? = null,
 ) {
+    val accents = LocalEtAccents.current
     Row(modifier.fillMaxWidth().padding(top = 8.dp), verticalAlignment = Alignment.CenterVertically) {
+        if (accents.vibrant) {
+            Box(
+                Modifier.size(width = 4.dp, height = if (subtitle != null) 34.dp else 18.dp).clip(CircleShape)
+                    .background(Brush.verticalGradient(listOf(accents[title.length], accents[title.length + 1]))),
+            )
+            Spacer(Modifier.width(10.dp))
+        }
         Column(Modifier.weight(1f)) {
             Text(
                 title, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold,
@@ -295,6 +306,16 @@ fun SectionHeader(
             TextButton(onClick = onAction) { Text(action) }
         }
     }
+}
+
+/** A tinted circle holding an icon; [index] picks a Vibrant accent (Classic / Material You use primary). */
+@Composable
+fun IconBubble(icon: ImageVector, index: Int = 0, modifier: Modifier = Modifier, size: Dp = 40.dp, tint: Color? = null) {
+    val c = tint ?: LocalEtAccents.current[index]
+    Box(
+        modifier.size(size).clip(CircleShape).background(c.copy(alpha = if (LocalEtAccents.current.vibrant) 0.2f else 0.14f)),
+        contentAlignment = Alignment.Center,
+    ) { Icon(icon, null, tint = c, modifier = Modifier.size(size * 0.55f)) }
 }
 
 @Composable

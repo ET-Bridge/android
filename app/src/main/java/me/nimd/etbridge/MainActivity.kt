@@ -85,7 +85,7 @@ class MainActivity : FragmentActivity() {
                 onDispose {}
             }
 
-            EtbridgeTheme(darkTheme = dark, dynamicColor = p.dynamicColor) {
+            EtbridgeTheme(darkTheme = dark, dynamicColor = p.dynamicColor, vibrant = p.vibrant) {
                 val screen = when {
                     state is AppState.SignedIn && locked -> "lock"
                     state is AppState.SignedIn -> "main"

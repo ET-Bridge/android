@@ -254,6 +254,8 @@ private fun NavGraphBuilder.graph() {
     screen(AnalysisRoute::class) { AnalysisScreen() }
     screen(SettingsRoute::class) { SettingsScreen() }
     screen(AboutRoute::class) { AboutScreen() }
+    screen(AppInfoRoute::class) { me.nimd.etbridge.feature.more.AppInfoScreen() }
+    screen(HomeLayoutRoute::class) { me.nimd.etbridge.feature.settings.HomeLayoutScreen() }
 }
 
 // Top-level tabs fade through; detail screens slide in from the side (with shared elements).

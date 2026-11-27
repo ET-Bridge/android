@@ -2,7 +2,9 @@ package me.nimd.etbridge.core.data.repo
 
 import io.ktor.client.HttpClient
 import io.ktor.client.request.forms.submitForm
+import io.ktor.client.request.header
 import io.ktor.client.statement.bodyAsText
+import io.ktor.http.HttpHeaders
 import io.ktor.http.parameters
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
@@ -31,8 +33,20 @@ class FeedbackRepository @Inject constructor(
         const val ACCESS_KEY = "68f7effe-e08f-4fe2-8342-a32019d2db20"
     }
 
-    suspend fun submit(category: FeedbackCategory, name: String, email: String, message: String): Result<Unit> = runCatching {
+    /**
+     * Sends feedback. Web3Forms delivers the email but often replies with an HTML page (or a redirect to one)
+     * instead of JSON, so a non-JSON 2xx/3xx reply counts as sent unless it is Web3Forms' failure page.
+     */
+    suspend fun submit(
+        category: FeedbackCategory,
+        name: String,
+        email: String,
+        message: String,
+        diagnostics: Map<String, String> = emptyMap(),
+    ): Result<Unit> = runCatching {
         val session = sessionStore.current
+        val footer = if (diagnostics.isEmpty()) "" else
+            "\n\n---\n" + diagnostics.entries.joinToString("\n") { (k, v) -> "$k: $v" }
         val res = client.submitForm(
             url = ENDPOINT,
             formParameters = parameters {
@@ -40,17 +54,27 @@ class FeedbackRepository @Inject constructor(
                 append("category", category.id)
                 append("name", name)
                 append("email", email)
-                append("message", message)
+                append("message", message + footer)
                 session?.instituteId?.let { append("institute", it) }
                 session?.username?.let { append("username", it) }
+                diagnostics.forEach { (k, v) -> append(k.lowercase().replace(' ', '_'), v) }
                 append("from_name", "ETBridge Android Feedback")
                 append("subject", "[ETBridge Android] ${category.id.uppercase()} - ${session?.instituteId ?: "User"}")
             },
-        )
-        val json = runCatching { EtlabJson.parseToJsonElement(res.bodyAsText()) as? JsonObject }.getOrNull()
-        val success = (json?.get("success") as? JsonPrimitive)?.booleanOrNull == true
-        if (!success) {
-            error((json?.get("message") as? JsonPrimitive)?.contentOrNull ?: "Error submitting feedback. Please try again.")
+        ) { header(HttpHeaders.Accept, "application/json") }
+        val body = runCatching { res.bodyAsText() }.getOrDefault("")
+        val json = runCatching { EtlabJson.parseToJsonElement(body) as? JsonObject }.getOrNull()
+        val code = res.status.value
+        when {
+            json != null -> {
+                val success = (json["success"] as? JsonPrimitive)?.booleanOrNull == true
+                if (!success) {
+                    error((json["message"] as? JsonPrimitive)?.contentOrNull ?: "Couldn't send feedback (HTTP $code). Please try again.")
+                }
+            }
+            code >= 400 || body.contains("submission failed", ignoreCase = true) ->
+                error("Couldn't send feedback (HTTP $code). Please try again.")
+            else -> Unit // HTML success page: the email went out.
         }
     }
 }

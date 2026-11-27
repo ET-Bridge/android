@@ -5,6 +5,15 @@ import android.os.Build
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.background
+import androidx.compose.foundation.border
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.rounded.Check
+import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.Column
@@ -18,7 +27,6 @@ import androidx.compose.material.icons.automirrored.rounded.Logout
 import androidx.compose.material.icons.rounded.Alarm
 import androidx.compose.material.icons.rounded.Campaign
 import androidx.compose.material.icons.rounded.Fingerprint
-import androidx.compose.material.icons.rounded.Palette
 import androidx.compose.material.icons.rounded.Sync
 import androidx.compose.material.icons.rounded.SystemUpdate
 import androidx.compose.material.icons.rounded.TrackChanges
@@ -38,10 +46,10 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.setValue
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -59,6 +67,7 @@ import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import me.nimd.etbridge.BuildConfig
 import me.nimd.etbridge.core.data.prefs.AppPreferences
+import me.nimd.etbridge.core.data.prefs.ColorPalette
 import me.nimd.etbridge.core.data.prefs.ThemeMode
 import me.nimd.etbridge.core.data.prefs.UserPreferencesRepository
 import me.nimd.etbridge.core.data.session.SessionStore
@@ -70,8 +79,13 @@ import me.nimd.etbridge.sync.SyncScheduler
 import me.nimd.etbridge.ui.EtScreen
 import me.nimd.etbridge.ui.LocalAppActions
 import me.nimd.etbridge.ui.LocalSnackbar
-import me.nimd.etbridge.ui.openUrl
 import me.nimd.etbridge.update.UpdateManager
+import me.nimd.etbridge.update.manifest
+import me.nimd.etbridge.navigation.AppInfoRoute
+import me.nimd.etbridge.navigation.HomeLayoutRoute
+import androidx.compose.material.icons.rounded.Info
+import androidx.compose.material.icons.rounded.Dashboard
+import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import me.nimd.etbridge.update.UpdateState
 import javax.inject.Inject
 import kotlin.math.roundToInt
@@ -82,6 +96,7 @@ class SettingsViewModel @Inject constructor(
     private val scheduler: SyncScheduler,
     sessionStore: SessionStore,
     val updates: UpdateManager,
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
 ) : ViewModel() {
     val state = prefs.preferences.stateIn(viewModelScope, SharingStarted.Eagerly, AppPreferences())
     val session = sessionStore.session
@@ -91,7 +106,10 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun theme(m: ThemeMode) = set { setThemeMode(m) }
-    fun dynamic(v: Boolean) = set { setDynamicColor(v) }
+    fun palette(v: ColorPalette) = set {
+        setPalette(v)
+        me.nimd.etbridge.widget.WidgetUpdater.updateAll(context) // widgets follow the palette
+    }
     fun biometric(v: Boolean) = set { setBiometricLock(v) }
     fun lockTimeout(v: Int) = set { setLockTimeout(v) }
     fun backgroundSync(v: Boolean) = set { setBackgroundSync(v) }
@@ -143,9 +161,22 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                         SegmentedButton(p.themeMode == m, { vm.theme(m) }, SegmentedButtonDefaults.itemShape(i, ThemeMode.entries.size)) { Text(m.name) }
                     }
                 }
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    SwitchRow(Icons.Rounded.Palette, "Material You colours", "Match your wallpaper instead of the ETBridge blue", p.dynamicColor, onChange = vm::dynamic)
-                }
+                Text("Colours", style = MaterialTheme.typography.labelLarge, modifier = Modifier.padding(top = 16.dp))
+                PalettePicker(p.palette, vm::palette)
+            }
+        }
+
+        item("home-h") { SectionHeader("Home screen") }
+        item("home") {
+            EtCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp)) {
+                ListItem(
+                    headlineContent = { Text("Customize Home") },
+                    supportingContent = { Text("Choose, reorder and reset the cards on your Home screen") },
+                    leadingContent = { Icon(Icons.Rounded.Dashboard, null) },
+                    trailingContent = { Icon(Icons.AutoMirrored.Rounded.ArrowForward, null) },
+                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
+                    modifier = Modifier.padding(vertical = 4.dp).clickable { app.navigate(HomeLayoutRoute) },
+                )
             }
         }
 
@@ -221,34 +252,18 @@ fun SettingsScreen(vm: SettingsViewModel = hiltViewModel()) {
                 )
             }
         }
-        item("updates-h") { SectionHeader("App") }
-        item("updates") {
+        item("app-h") { SectionHeader("App") }
+        item("app") {
             EtCard(contentPadding = androidx.compose.foundation.layout.PaddingValues(vertical = 4.dp)) {
-                val enabled = vm.updates.enabled
+                val available = update.manifest != null && update !is UpdateState.UpToDate
                 ListItem(
-                    headlineContent = { Text("Check for updates") },
+                    headlineContent = { Text("App info") },
                     supportingContent = {
-                        Text(
-                            when {
-                                !enabled -> "This build can't update itself. Get the official APK from GitHub."
-                                else -> when (val u = update) {
-                                    UpdateState.Checking -> "Checking…"
-                                    UpdateState.UpToDate -> "You're on the latest version (${BuildConfig.VERSION_NAME})"
-                                    is UpdateState.Failed -> if (u.manifest == null) u.message else "Version ${u.manifest.versionName} is available"
-                                    is UpdateState.Downloading -> "Downloading version ${u.manifest.versionName}…"
-                                    is UpdateState.Installing -> "Installing version ${u.manifest.versionName}…"
-                                    is UpdateState.Available -> "Version ${u.manifest.versionName} is available"
-                                    is UpdateState.NeedsPermission -> "Version ${u.manifest.versionName} is available"
-                                    UpdateState.Idle -> "Version ${BuildConfig.VERSION_NAME}"
-                                }
-                            },
-                        )
+                        Text(if (available) "Version ${update.manifest?.versionName} is available" else "Version ${BuildConfig.VERSION_NAME} · updates, privacy & about")
                     },
-                    leadingContent = { Icon(Icons.Rounded.SystemUpdate, null) },
+                    leadingContent = { Icon(if (available) Icons.Rounded.SystemUpdate else Icons.Rounded.Info, null) },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    modifier = Modifier.padding(vertical = 4.dp).clickable {
-                        if (enabled) vm.updates.checkNow() else context.openUrl(UpdateManager.RELEASES_URL)
-                    },
+                    modifier = Modifier.padding(vertical = 4.dp).clickable { app.navigate(AppInfoRoute) },
                 )
             }
         }
@@ -290,4 +305,59 @@ private fun SwitchRow(
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         modifier = Modifier.toggleable(value = checked, enabled = enabled, role = Role.Switch, onValueChange = onChange),
     )
+}
+
+private data class PaletteOption(val palette: ColorPalette, val name: String, val caption: String, val swatches: List<Color>)
+
+/** Three swatch tiles; Material You is offered only on Android 12+. */
+@Composable
+private fun PalettePicker(selected: ColorPalette, onSelect: (ColorPalette) -> Unit) {
+    val options = buildList {
+        add(PaletteOption(ColorPalette.Classic, "Classic", "ETBridge blue", listOf(Color(0xFF3B82F6), Color(0xFF6366F1), Color(0xFF14B8A6))))
+        add(PaletteOption(ColorPalette.Vibrant, "Vibrant", "Bright & cheerful", listOf(Color(0xFF8B5CF6), Color(0xFFEC4899), Color(0xFF2DD4BF), Color(0xFFFBBF24))))
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            add(PaletteOption(ColorPalette.Dynamic, "Material You", "From your wallpaper", emptyList()))
+        }
+    }
+    val context = LocalContext.current
+    Row(Modifier.fillMaxWidth().padding(top = 8.dp), horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(10.dp)) {
+        options.forEach { o ->
+            val isSelected = selected == o.palette ||
+                (selected == ColorPalette.Dynamic && o.palette == ColorPalette.Classic && Build.VERSION.SDK_INT < Build.VERSION_CODES.S)
+            val swatches = o.swatches.ifEmpty {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+                    val d = androidx.compose.material3.dynamicLightColorScheme(context)
+                    listOf(d.primary, d.secondary, d.tertiary)
+                } else emptyList()
+            }
+            val shape = MaterialTheme.shapes.medium
+            Column(
+                Modifier.weight(1f)
+                    .clip(shape)
+                    .border(
+                        if (isSelected) 2.dp else 1.dp,
+                        if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                        shape,
+                    )
+                    .background(if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else Color.Transparent)
+                    .selectable(isSelected, role = Role.RadioButton) { onSelect(o.palette) }
+                    .padding(10.dp),
+            ) {
+                Row(horizontalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy((-6).dp)) {
+                    swatches.forEach { c ->
+                        Box(
+                            Modifier.size(22.dp).clip(CircleShape).background(c)
+                                .border(2.dp, MaterialTheme.colorScheme.surfaceContainer, CircleShape),
+                        )
+                    }
+                }
+                Spacer(Modifier.height(8.dp))
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    Text(o.name, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f), maxLines = 1)
+                    if (isSelected) Icon(Icons.Rounded.Check, null, Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                }
+                Text(o.caption, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 2)
+            }
+        }
+    }
 }

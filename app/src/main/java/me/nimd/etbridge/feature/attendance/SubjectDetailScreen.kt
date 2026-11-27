@@ -65,6 +65,7 @@ import me.nimd.etbridge.ui.sharedBounds
 import me.nimd.etbridge.ui.sharedElement
 import java.time.LocalDate
 import kotlin.math.roundToInt
+import me.nimd.etbridge.ui.keyedUniquely
 
 private enum class RecordFilter(val label: String) { Absent("Absent"), Present("Present"), DutyLeave("Duty leave"), Upcoming("Upcoming"), All("All") }
 
@@ -163,8 +164,8 @@ fun SubjectDetailScreen(key: String, vm: StudentViewModel = hiltViewModel()) {
                     )
                 }
             }
-            records.take(60).forEach { r ->
-                item("rec-${filter.name}-${r.date}-${r.period.hour}") {
+            records.take(60).keyedUniquely { "rec-${filter.name}-${it.date}-${it.period.hour}" }.forEach { (k, r) ->
+                item(k) {
                     Column(Modifier.animateItem()) {
                         Text(
                             formatIndianDate(r.date, DateStyle.DayShort),

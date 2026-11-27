@@ -47,6 +47,7 @@ import me.nimd.etbridge.ui.LocalAppActions
 import me.nimd.etbridge.ui.LocalOnlyNotice
 import me.nimd.etbridge.ui.LogDutyLeaveSheet
 import me.nimd.etbridge.ui.StudentViewModel
+import me.nimd.etbridge.ui.keyedUniquely
 
 @Composable
 fun DutyLeavesScreen(vm: StudentViewModel = hiltViewModel()) {
@@ -100,8 +101,8 @@ fun DutyLeavesScreen(vm: StudentViewModel = hiltViewModel()) {
                 )
             }
         }
-        snap.dutyLeaves.forEach { d ->
-            item("o-${d.id}-${d.fromDate}") {
+        snap.dutyLeaves.keyedUniquely { "o-${it.id}-${it.fromDate}" }.forEach { (k, d) ->
+            item(k) {
                 EtCard {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Icon(Icons.Rounded.EventAvailable, null, tint = EtTheme.status.safe)

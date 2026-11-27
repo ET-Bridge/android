@@ -17,8 +17,8 @@ android {
         applicationId = "me.nimd.etbridge"
         minSdk = 26
         targetSdk = 36
-        versionCode = 4
-        versionName = "1.2.1"
+        versionCode = 5
+        versionName = "1.2.2"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         // In-app updates from GitHub releases; only release builds signed with the release key.
         buildConfigField("boolean", "SELF_UPDATE", "false")

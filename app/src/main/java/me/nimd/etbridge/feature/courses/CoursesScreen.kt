@@ -69,6 +69,7 @@ import me.nimd.etbridge.ui.StudentViewModel
 import me.nimd.etbridge.ui.TabbedScreen
 import me.nimd.etbridge.ui.sharedBounds
 import javax.inject.Inject
+import me.nimd.etbridge.ui.keyedUniquely
 
 @Composable
 fun CoursesScreen(vm: StudentViewModel = hiltViewModel()) {
@@ -96,8 +97,8 @@ fun CoursesScreen(vm: StudentViewModel = hiltViewModel()) {
         if (courses.isEmpty()) {
             item { EmptyState(Icons.AutoMirrored.Rounded.MenuBook, if (query.isBlank()) "No courses yet" else "No matches") }
         }
-        courses.forEach { c ->
-            item("c-${c.id}-${c.code}") {
+        courses.keyedUniquely { "c-${it.id}-${it.code}" }.forEach { (k, c) ->
+            item(k) {
                 EtCard(
                     Modifier.animateItem().sharedBounds("course-${c.id}"),
                     onClick = { app.navigate(CourseRoute(c.id, c.name, c.code)) },
@@ -182,8 +183,8 @@ fun CourseDetailScreen(route: CourseRoute, vm: CourseDetailViewModel = hiltViewM
         }
         when (tabs.getOrNull(i)) {
             "Syllabus" -> syllabus(d)
-            "Outcomes" -> d.outcomes.forEach { o ->
-                item("o-${o.id}") {
+            "Outcomes" -> d.outcomes.keyedUniquely { "o-${it.id}" }.forEach { (k, o) ->
+                item(k) {
                     EtCard {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Pill(o.code, tone = Tone.Brand); Spacer(Modifier.width(8.dp))
@@ -193,8 +194,8 @@ fun CourseDetailScreen(route: CourseRoute, vm: CourseDetailViewModel = hiltViewM
                     }
                 }
             }
-            "Execution" -> d.execution.sortedByDescending { it.date }.forEach { e ->
-                item("e-${e.id}") {
+            "Execution" -> d.execution.sortedByDescending { it.date }.keyedUniquely { "e-${it.id}" }.forEach { (k, e) ->
+                item(k) {
                     EtCard {
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text("${formatIndianDate(e.date, DateStyle.Short)} · Hour ${e.hour}", style = MaterialTheme.typography.labelMedium, modifier = Modifier.weight(1f))
@@ -204,8 +205,8 @@ fun CourseDetailScreen(route: CourseRoute, vm: CourseDetailViewModel = hiltViewM
                     }
                 }
             }
-            "Books" -> d.sourceBooks.forEach { b ->
-                item("b-${b.id}") {
+            "Books" -> d.sourceBooks.keyedUniquely { "b-${it.id}" }.forEach { (k, b) ->
+                item(k) {
                     EtCard {
                         Text(b.title, style = MaterialTheme.typography.titleSmall)
                         Text(

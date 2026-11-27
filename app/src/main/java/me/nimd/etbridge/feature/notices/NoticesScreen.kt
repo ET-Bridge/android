@@ -40,6 +40,7 @@ import me.nimd.etbridge.core.model.formatIndianDate
 import me.nimd.etbridge.ui.LocalAppActions
 import me.nimd.etbridge.ui.StudentViewModel
 import me.nimd.etbridge.ui.TabbedScreen
+import me.nimd.etbridge.ui.keyedUniquely
 
 @Composable
 fun NoticesScreen(vm: StudentViewModel = hiltViewModel()) {
@@ -67,8 +68,8 @@ fun NoticesScreen(vm: StudentViewModel = hiltViewModel()) {
 
 private fun LazyListScope.noticeList(list: List<NoticeItem>) {
     if (list.isEmpty()) item { EmptyState(Icons.Rounded.Campaign, "No notices") }
-    list.sortedByDescending { it.date }.forEach { n ->
-        item("n-${n.id}") {
+    list.sortedByDescending { it.date }.keyedUniquely { "n-${it.id}" }.forEach { (k, n) ->
+        item(k) {
             var expanded by rememberSaveable { mutableStateOf(false) }
             EtCard(Modifier.animateContentSize(), onClick = { expanded = !expanded }) {
                 Text(n.title, style = MaterialTheme.typography.titleSmall)
@@ -90,8 +91,8 @@ private fun LazyListScope.noticeList(list: List<NoticeItem>) {
 
 private fun LazyListScope.circularList(list: List<CircularItem>) {
     if (list.isEmpty()) item { EmptyState(Icons.Rounded.Description, "No circulars") }
-    list.sortedByDescending { it.date }.forEach { c ->
-        item("c-${c.id}") {
+    list.sortedByDescending { it.date }.keyedUniquely { "c-${it.id}" }.forEach { (k, c) ->
+        item(k) {
             val app = LocalAppActions.current
             val url = c.url?.takeIf { it.isNotBlank() && it != "#" }
             EtCard(onClick = url?.let { { app.download(it, null) } }) {

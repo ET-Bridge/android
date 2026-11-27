@@ -98,6 +98,7 @@ import me.nimd.etbridge.ui.StudentSnapshot
 import me.nimd.etbridge.ui.StudentViewModel
 import me.nimd.etbridge.ui.TabbedScreen
 import javax.inject.Inject
+import me.nimd.etbridge.ui.keyedUniquely
 
 @HiltViewModel
 class AssignmentViewModel @Inject constructor(
@@ -199,14 +200,14 @@ private fun LazyListScope.exams(snap: StudentSnapshot, filter: Int, onFilter: (I
     val published = exams.filter { it.isPublished }.sortedByDescending { it.date }
     if (upcoming.isNotEmpty()) {
         item("up-h") { SectionHeader("Upcoming", subtitle = "${upcoming.size} scheduled") }
-        upcoming.forEach { e -> item("up-${e.id}") { UpcomingExamCard(e, Modifier.animateItem()) } }
+        upcoming.keyedUniquely { "up-${it.id}" }.forEach { (k, e) -> item(k) { UpcomingExamCard(e, Modifier.animateItem()) } }
     }
     if (published.isNotEmpty()) {
         item("pub-h") {
             val pcts = published.mapNotNull { e -> e.mark.toDoubleOrNull()?.takeIf { e.maximumMark > 0 }?.let { it / e.maximumMark * 100 } }
             SectionHeader("Published marks", subtitle = if (pcts.isNotEmpty()) "Average ${pcts.average().formatPercent()}% across ${pcts.size} papers" else null)
         }
-        published.forEach { e -> item("ex-${e.id}") { ExamCard(e, averages[e.id], Modifier.animateItem()) } }
+        published.keyedUniquely { "ex-${it.id}" }.forEach { (k, e) -> item(k) { ExamCard(e, averages[e.id], Modifier.animateItem()) } }
     }
     if (exams.isEmpty()) item("none") { EmptyState(Icons.Rounded.Quiz, "No exams match this filter") }
 }
@@ -319,8 +320,9 @@ private fun LazyListScope.assignments(snap: StudentSnapshot, filter: Int, onFilt
         }
         return
     }
-    list.forEach { (kind, a) ->
-        item("as-${kind}-${a.id}") {
+    list.keyedUniquely { (kind, a) -> "as-$kind-${a.id}" }.forEach { (k, entry) ->
+        val (kind, a) = entry
+        item(k) {
             val left = daysRemaining(a.lastDate)
             EtCard(Modifier.animateItem(), onClick = { onOpen(a) }) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -437,8 +439,8 @@ private fun LazyListScope.materials(snap: StudentSnapshot) {
     }
     snap.materials.groupBy { it.subject.ifBlank { "Other" } }.forEach { (subject, list) ->
         item("mh-$subject") { Text(subject, style = MaterialTheme.typography.titleMedium, modifier = Modifier.padding(top = 4.dp)) }
-        list.forEach { m ->
-            item("m-${m.id}") {
+        list.keyedUniquely { "m-${it.id}" }.forEach { (k, m) ->
+            item(k) {
                 val app = LocalAppActions.current
                 val link = m.link
                 val downloading = link != null && link in app.downloadingUrls
@@ -469,8 +471,8 @@ private fun LazyListScope.results(snap: StudentSnapshot) {
         item { EmptyState(Icons.Rounded.EmojiEvents, "No university results yet") }
         return
     }
-    snap.results.forEach { r ->
-        item("r-${r.examId}-${r.examName}") {
+    snap.results.keyedUniquely { "r-${it.examId}-${it.examName}" }.forEach { (k, r) ->
+        item(k) {
             EtCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
@@ -512,8 +514,8 @@ private fun LazyListScope.faculty(snap: StudentSnapshot) {
         item { EmptyState(Icons.Rounded.Groups, "No faculty listed") }
         return
     }
-    snap.teachers.sortedByDescending { (if (it.isHod) 4 else 0) + (if (it.isStaffAdvisor) 2 else 0) + (if (it.isMentor) 1 else 0) }.forEach { t ->
-        item("t-${t.id}-${t.name}") {
+    snap.teachers.sortedByDescending { (if (it.isHod) 4 else 0) + (if (it.isStaffAdvisor) 2 else 0) + (if (it.isMentor) 1 else 0) }.keyedUniquely { "t-${it.id}-${it.name}" }.forEach { (k, t) ->
+        item(k) {
             val context = LocalContext.current
             EtCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {

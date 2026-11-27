@@ -45,6 +45,7 @@ import me.nimd.etbridge.ui.LocalOnlyNotice
 import me.nimd.etbridge.ui.StudentSnapshot
 import me.nimd.etbridge.ui.StudentViewModel
 import me.nimd.etbridge.ui.TabbedScreen
+import me.nimd.etbridge.ui.keyedUniquely
 
 /** KTU requires 100 activity points for B.Tech degree eligibility. */
 private const val ACTIVITY_TARGET = 100.0
@@ -92,8 +93,8 @@ private fun LazyListScope.activity(snap: StudentSnapshot) {
         }
     }
     if (a.awarded.isNotEmpty()) item("ah") { SectionHeader("Awarded activities") }
-    a.awarded.forEach { act ->
-        item("act-${act.id}") {
+    a.awarded.keyedUniquely { "act-${it.id}" }.forEach { (k, act) ->
+        item(k) {
             EtCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {
@@ -132,8 +133,8 @@ private fun LazyListScope.fees(snap: StudentSnapshot) {
             if (f.hasDue || f.totalBalance > 0) Pill("Dues pending", tone = Tone.Danger) else Pill("No dues — all clear", tone = Tone.Safe)
         }
     }
-    f.feeTypes.forEach { t ->
-        item("ft-${t.feeTypeId}-${t.feeTypeName}") {
+    f.feeTypes.keyedUniquely { "ft-${it.feeTypeId}-${it.feeTypeName}" }.forEach { (k, t) ->
+        item(k) {
             EtCard {
                 Text(t.feeTypeName, style = MaterialTheme.typography.titleSmall)
                 t.installments.forEach { ins ->
@@ -183,8 +184,8 @@ private fun LazyListScope.dutyLeaves(snap: StudentSnapshot, onOpen: () -> Unit) 
             }
         }
     }
-    snap.dutyLeaves.take(10).forEach { d ->
-        item("o-${d.id}-${d.fromDate}") {
+    snap.dutyLeaves.take(10).keyedUniquely { "o-${it.id}-${it.fromDate}" }.forEach { (k, d) ->
+        item(k) {
             EtCard {
                 Text(d.reason ?: "Duty leave", style = MaterialTheme.typography.titleSmall)
                 Text(
@@ -201,8 +202,8 @@ private fun LazyListScope.surveys(snap: StudentSnapshot) {
         item { EmptyState(Icons.Rounded.Poll, "No surveys", message = "Faculty feedback surveys appear here when they open.") }
         return
     }
-    snap.surveys.sortedByDescending { it.isOpen }.forEach { s ->
-        item("s-${s.id}") {
+    snap.surveys.sortedByDescending { it.isOpen }.keyedUniquely { "s-${it.id}" }.forEach { (k, s) ->
+        item(k) {
             EtCard {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Column(Modifier.weight(1f)) {

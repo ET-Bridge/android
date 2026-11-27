@@ -89,6 +89,7 @@ import me.nimd.etbridge.ui.StudentViewModel
 import me.nimd.etbridge.ui.SubjectCard
 import java.time.Duration
 import java.time.LocalDateTime
+import me.nimd.etbridge.ui.keyedUniquely
 
 @Composable
 fun DashboardScreen(vm: StudentViewModel = hiltViewModel()) {
@@ -153,7 +154,7 @@ fun DashboardScreen(vm: StudentViewModel = hiltViewModel()) {
                     }
                     item("exams") {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            items(upcomingExams.take(8), key = { it.id }) { e ->
+                            items(upcomingExams.take(8).keyedUniquely { it.id }, key = { it.first }) { (_, e) ->
                                 val left = daysRemaining(e.date)
                                 EtCard(Modifier.width(220.dp), onClick = { app.navigate(AcademicsRoute) }) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -181,7 +182,7 @@ fun DashboardScreen(vm: StudentViewModel = hiltViewModel()) {
                     }
                     item("deadlines") {
                         LazyRow(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            items(deadlines.take(6), key = { it.id }) { a ->
+                            items(deadlines.take(6).keyedUniquely { it.id }, key = { it.first }) { (_, a) ->
                                 val left = daysRemaining(a.lastDate)
                                 EtCard(Modifier.width(240.dp), onClick = { app.navigate(AcademicsRoute) }) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
@@ -217,8 +218,8 @@ fun DashboardScreen(vm: StudentViewModel = hiltViewModel()) {
                 val notices = snap.profile?.notices.orEmpty().take(2)
                 if (notices.isNotEmpty()) {
                     item("notices-h") { SectionHeader("Recent notices", action = "All", onAction = { app.navigate(NoticesRoute) }) }
-                    notices.forEach { n ->
-                        item("notice-${n.id}") {
+                    notices.keyedUniquely { "notice-${it.id}" }.forEach { (k, n) ->
+                        item(k) {
                             EtCard(onClick = { app.navigate(NoticesRoute) }) {
                                 Text(n.title, style = MaterialTheme.typography.titleSmall, maxLines = 2, overflow = TextOverflow.Ellipsis)
                                 if (!n.content.isNullOrBlank()) {
@@ -391,7 +392,7 @@ private fun LiveClassCard(focus: ScheduleFocus, now: LocalDateTime, onOpen: () -
         if (focus.periods.isNotEmpty()) {
             Spacer(Modifier.height(14.dp))
             LazyRow(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                items(focus.periods, key = { it.hour }) { p ->
+                items(focus.periods.keyedUniquely { "${it.hour}" }, key = { it.first }) { (_, p) ->
                     HourChip(p, active = p.hour == focus.activeHour && focus.activeHour != 0, showStatus = !focus.isTomorrow)
                 }
             }

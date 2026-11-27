@@ -3,6 +3,15 @@
 All notable changes to ETBridge for Android. Versions follow `versionName` in
 `app/build.gradle.kts`; `versionCode` increases with every release.
 
+## [1.2.2] — 2026-11-27
+
+### Fixed
+- **Campus crashed when switching tabs.** ETLab returns one survey row per feedback session with the
+  same survey id, and the Surveys list used that id as its item key, so opening Duty leaves or
+  Surveys (which pre-loads the neighbouring tab) closed the app. Every list keyed by ETLab ids
+  (notices, circulars, exams, assignments, materials, courses, duty leaves, dashboard cards) now
+  tolerates duplicate ids.
+
 ## [1.2.1] — 2026-11-25
 
 ### Fixed

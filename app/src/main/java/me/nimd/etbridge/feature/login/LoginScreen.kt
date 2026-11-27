@@ -88,6 +88,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import me.nimd.etbridge.R
 import me.nimd.etbridge.core.designsystem.EtMotion
 import me.nimd.etbridge.core.model.Institute
+import me.nimd.etbridge.ui.keyedUniquely
 
 @Composable
 fun LoginScreen(vm: LoginViewModel = hiltViewModel()) {
@@ -333,7 +334,7 @@ private fun InstitutePicker(
                     HorizontalDivider()
                 }
             }
-            items(filtered, key = { it.id }) { inst ->
+            items(filtered.keyedUniquely { it.id }, key = { it.first }) { (_, inst) ->
                 ListItem(
                     headlineContent = { Text(inst.name) },
                     supportingContent = { Text(inst.id.uppercase()) },
